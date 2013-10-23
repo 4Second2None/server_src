@@ -58,9 +58,7 @@ static void* produce_user(void *arg)
 
     while (1)
     {
-        uint64_t uid = (uint64_t)rand() % 10001;
-        if (uid == 0)
-            continue;
+        uint64_t uid = (uint64_t)rand() % 10000 + 1;
 
         pthread_rwlock_wrlock(&user_mgr->rwlock);
         user_map_t::iterator itr = user_mgr->users_.find(uid);
@@ -85,9 +83,7 @@ static void* user_do(void *arg)
 
     while (1)
     {
-        uint64_t uid = (uint64_t)rand() % 10001;
-        if (uid == 0)
-            continue;
+        uint64_t uid = (uint64_t)rand() % 10000 + 1;
 
         pthread_rwlock_rdlock(&user_mgr->rwlock);
         user_map_t::iterator itr = user_mgr->users_.find(uid);
@@ -110,9 +106,7 @@ static void* consume_user(void *arg)
 
     while (1)
     {
-        uint64_t uid = (uint64_t)rand() % 10001;
-        if (uid == 0)
-            continue;
+        uint64_t uid = (uint64_t)rand() % 10000 + 1;
 
         pthread_rwlock_wrlock(&user_mgr->rwlock);
         user_map_t::iterator itr = user_mgr->users_.find(uid);
