@@ -1,5 +1,5 @@
-#ifndef uSER_H_INCLUDED
-#define uSER_H_INCLUDED
+#ifndef USER_H_INCLUDED
+#define USER_H_INCLUDED
 
 #include <map>
 
@@ -26,4 +26,4 @@ void user_free(user_t **user);
 user_manager_t *user_manager_new();
 void user_manager_free(user_manager_t **user_mgr);
 
-#endif /* uSER_H_INCLUDED */
+#endif /* USER_H_INCLUDED */
