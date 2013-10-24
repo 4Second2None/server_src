@@ -29,16 +29,25 @@ typedef struct {
 } LIBEVENT_DISPATCHER_THREAD;
 
 /*
- * connecting info
+ * connector
  */
-struct connecting_info {
+typedef struct {
     LIBEVENT_THREAD *thread;
+#define STATE_NOT_CONNECTED 0
+#define STATE_CONNECTED 1
+    volatile int state;
     int fd;
-    char addr[16];
-    short port;
-};
+    struct sockaddr *sa;
+    int socklen;
+    struct event *timer;
+    struct timeval tv;
+    bufferevent *bev;
+} connector;
 
 void thread_init(int nthreads, struct event_base *base);
-void dispatch_fd_new(int fd, char key, const char *addr, short port);
+void dispatch_conn_new(int fd, char key, void *arg);
+connector *connector_new(int fd, struct sockaddr *sa, int socklen);
+void connector_free(connector *c);
+void connector_write(connector *c, char *msg, size_t sz);
 
 #endif /* THREAD_H_INCLUDED */

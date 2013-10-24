@@ -13,11 +13,7 @@
 typedef struct conn_queue_item CQ_ITEM;
 struct conn_queue_item {
     int fd;
-
-    /* used by connecting socket */
-    char addr[16];
-    unsigned short port;
-
+    void *arg;
     CQ_ITEM *next;
 };
 
@@ -117,7 +113,6 @@ void conn_write_cb(struct bufferevent *, void *);
 void conn_event_cb(struct bufferevent *, short, void *);
 void connecting_event_cb(struct bufferevent *, short, void *);
 
-
 static void thread_libevent_process(int fd, short which, void *arg)
 {
     LIBEVENT_THREAD *me = (LIBEVENT_THREAD *)arg;
@@ -150,27 +145,20 @@ static void thread_libevent_process(int fd, short which, void *arg)
             {
                 item = cq_pop(me->new_conn_queue);
 
-                if (NULL != item) {
-                    struct bufferevent* bev = bufferevent_socket_new(me->base, item->fd, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
-                    if (NULL == bev) {
-                        fprintf(stderr, "create bufferevent failed!\n");
-                        close(item->fd);
+                if (NULL != item && NULL != item->arg) {
+                    connector *c = (connector *)item->arg;
+                    c->thread = me;
+                    if (NULL == c->bev) {
+                        c->bev = bufferevent_socket_new(me->base, item->fd, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
+                        if (NULL == c->bev) {
+                            fprintf(stderr, "create bufferevent failed!\n");
+                            close(item->fd);
+                        }
                     }
 
-                    struct sockaddr_in sa;
-                    bzero(&sa, sizeof(sa));
-                    sa.sin_family = AF_INET;
-                    sa.sin_addr.s_addr = inet_addr(item->addr);
-                    sa.sin_port = htons(item->port);
-                    
-                    struct connecting_info * ci = (struct connecting_info *)malloc(sizeof(struct connecting_info));
-                    ci->thread = me;
-                    ci->fd = item->fd;
-                    strncpy(ci->addr, item->addr, 16);
-                    ci->port = item->port;
-                    bufferevent_setcb(bev, NULL, NULL, connecting_event_cb, ci);
-                    printf("connecting:%s!\n", item->addr);
-                    bufferevent_socket_connect(bev, (struct sockaddr *)&sa, sizeof(sa));
+                    bufferevent_setcb(c->bev, NULL, NULL, connecting_event_cb, c);
+                    printf("connecting!\n");
+                    bufferevent_socket_connect(c->bev, c->sa, c->socklen);
                 }
                 cqi_free(item);
             }
@@ -285,7 +273,7 @@ void thread_init(int nthreads, struct event_base *main_base)
 
 static int last_thread = -1;
 
-void dispatch_fd_new(int fd, char key, const char *addr, short port) {
+void dispatch_conn_new(int fd, char key, void *arg) {
     CQ_ITEM *item = cqi_new();
     char buf[1];
     int tid = (last_thread + 1) % num_threads;
@@ -295,16 +283,55 @@ void dispatch_fd_new(int fd, char key, const char *addr, short port) {
     last_thread = tid;
 
     item->fd = fd;
-    if ('t' == key)
-    {
-        strncpy(item->addr, addr, 16);
-        item->port = port;
-    }
+    item->arg = arg;
     
     cq_push(thread->new_conn_queue, item);
 
     buf[0] = key;
     if (write(thread->notify_send_fd, buf, 1) != 1) {
         fprintf(stderr, "writing to thread notify pipe failed!\n");
+    }
+}
+
+/******************************* connector ********************************/
+
+connector *connector_new(int fd, struct sockaddr *sa, int socklen)
+{
+    connector *c = (connector *)malloc(sizeof(connector));
+    if (NULL == c) {
+        fprintf(stderr, "connector alloc failed!\n");
+        return NULL;
+    }
+
+    c->sa = (struct sockaddr *)malloc(socklen);
+    if (NULL == c->sa) {
+        fprintf(stderr, "sockaddr alloc failed!\n");
+        free(c);
+        return NULL;
+    }
+
+    memcpy(c->sa, sa, socklen);
+    c->thread = NULL;
+    c->fd = fd;
+    c->socklen = socklen;
+    c->timer = NULL;
+    c->bev = NULL;
+    return c;
+}
+
+void connector_free(connector *c)
+{
+    free(c->sa);
+    bufferevent_free(c->bev);
+    free(c);
+}
+
+void connector_write(connector *c, char *msg, size_t sz)
+{
+    if (c && c->state == STATE_CONNECTED && c->bev) {
+        evbuffer *output = bufferevent_get_output(c->bev);
+        if (output) {
+            //evbuffer_write(output, msg, sz);
+        }
     }
 }

@@ -5,6 +5,7 @@
 
 #include <strings.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <signal.h>
 
 static void signal_cb(evutil_socket_t, short, void *);
@@ -49,7 +50,14 @@ int main(int argc, char **argv)
     }
 
     /* connector */
-    dispatch_fd_new(-1, 't', "127.0.0.1", 8888);
+    struct sockaddr_in csa;
+    bzero(&csa, sizeof(csa));
+    csa.sin_family = AF_INET;
+    csa.sin_addr.s_addr = inet_addr("127.0.0.1");
+    csa.sin_port = htons(9999);
+
+    connector *c = connector_new(-1, (struct sockaddr *)&csa, sizeof(csa));
+    dispatch_conn_new(-1, 't', c);
 
     event_base_dispatch(main_base);
     event_base_free(main_base);
