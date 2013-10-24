@@ -1,4 +1,5 @@
 #include "thread.h"
+#include "msg.h"
 
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
@@ -13,11 +14,87 @@ void accept_cb(struct evconnlistener *l, evutil_socket_t fd, struct sockaddr *sa
     dispatch_conn_new(fd, 'c', NULL);
 }
 
+void rpc_cb(struct bufferevent *, unsigned char *, size_t);
 void conn_read_cb(struct bufferevent *bev, void *arg)
 {
-    printf("conn_read_cb\n");
-    evbuffer *input = bufferevent_get_input(bev);
-    printf("input length:%zu\n", evbuffer_get_length(input));
+    size_t total_len;
+
+    struct evbuffer* input = bufferevent_get_input(bev);
+    total_len = evbuffer_get_length(input);
+    printf("read_cb input_buffer_length:%zu\n", total_len);
+
+    while (1)
+    {
+        if (total_len < MSG_HEAD_SIZE) {
+            goto conti;
+        }
+        else {
+            unsigned char *buffer;
+            unsigned short *cur;
+            unsigned short magic_number, len, cmd, flags;
+
+            buffer = evbuffer_pullup(input, MSG_HEAD_SIZE);
+            if (NULL == buffer)
+            {
+                fprintf(stderr, "evbuffer_pullup failed!\n");
+                goto err;
+            }
+
+            cur = (unsigned short *)buffer;
+            magic_number = ntohs(*(unsigned short *)cur++);
+            if (MAGIC_NUMBER != magic_number)
+            {
+                fprintf(stderr, "magic_number error!\n");
+                goto err;
+            }
+
+            len = ntohs(*(unsigned short *)cur++);
+            printf("len:%d\n", len);
+
+            if (MSG_MAX_SIZE < len)
+            {
+                fprintf(stderr, "len:%d > MSG_MAX_SIZE\n", len);
+                goto err;
+            }
+
+            if (total_len < MSG_HEAD_SIZE + len)
+                goto conti;
+
+            cmd = ntohs(*(unsigned short *)cur++);
+            flags = ntohs(*(unsigned short *)cur);
+            printf("MESSAGE cmd:%d len:%d flags:%d\n", cmd, len, flags);
+
+            size_t msg_len = MSG_HEAD_SIZE + len;
+            buffer = evbuffer_pullup(input, msg_len);
+            if (NULL == buffer)
+            {
+                fprintf(stderr, "evbuffer_pullup failed again!\n");
+                goto err;
+            }
+
+            /* TODO frequency limit */
+
+            /* callback */
+            rpc_cb(bev, buffer, msg_len);
+
+            if (evbuffer_drain(input, msg_len) < 0)
+            {
+                fprintf(stderr, "evbuffer_drain failed!\n");
+                goto err;
+            }
+
+            total_len -= msg_len;
+        }
+    }
+    return;
+
+err:
+    printf("close sockect!\n");
+    bufferevent_free(bev);
+    return;
+conti:
+    bufferevent_enable(bev, EV_READ);
+    return;
 }
 
 void conn_write_cb(struct bufferevent *bev, void *arg)
