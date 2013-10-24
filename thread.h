@@ -48,6 +48,6 @@ void thread_init(int nthreads, struct event_base *base);
 void dispatch_conn_new(int fd, char key, void *arg);
 connector *connector_new(int fd, struct sockaddr *sa, int socklen);
 void connector_free(connector *c);
-void connector_write(connector *c, char *msg, size_t sz);
+int connector_write(connector *c, char *msg, size_t sz);
 
 #endif /* THREAD_H_INCLUDED */

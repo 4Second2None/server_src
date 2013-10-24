@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     bzero(&csa, sizeof(csa));
     csa.sin_family = AF_INET;
     csa.sin_addr.s_addr = inet_addr("127.0.0.1");
-    csa.sin_port = htons(9999);
+    csa.sin_port = htons(5555);
 
     connector *c = connector_new(-1, (struct sockaddr *)&csa, sizeof(csa));
     dispatch_conn_new(-1, 't', c);

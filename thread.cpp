@@ -134,6 +134,8 @@ static void thread_libevent_process(int fd, short which, void *arg)
                         close(item->fd);
                     }
 
+                    evbuffer *input = bufferevent_get_input(bev);
+                    evbuffer_enable_locking(input, NULL);
                     bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb, me);
                     bufferevent_enable(bev, EV_READ);
                     printf("new connection established!\n");
@@ -156,6 +158,8 @@ static void thread_libevent_process(int fd, short which, void *arg)
                         }
                     }
 
+                    evbuffer *input = bufferevent_get_input(c->bev);
+                    evbuffer_enable_locking(input, NULL);
                     bufferevent_setcb(c->bev, NULL, NULL, connecting_event_cb, c);
                     printf("connecting!\n");
                     bufferevent_socket_connect(c->bev, c->sa, c->socklen);
@@ -326,12 +330,11 @@ void connector_free(connector *c)
     free(c);
 }
 
-void connector_write(connector *c, char *msg, size_t sz)
+int connector_write(connector *c, char *msg, size_t sz)
 {
     if (c && c->state == STATE_CONNECTED && c->bev) {
-        evbuffer *output = bufferevent_get_output(c->bev);
-        if (output) {
-            //evbuffer_write(output, msg, sz);
-        }
+        if (0 == bufferevent_write(c->bev, msg, sz))
+            return bufferevent_enable(c->bev, EV_WRITE);
     }
+    return -1;
 }
