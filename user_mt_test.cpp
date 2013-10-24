@@ -21,18 +21,24 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    pthread_t produce_user_thread;
-    create_thread(&produce_user_thread, produce_user, user_mgr);
+    pthread_t produce_user_thread[16];
+    for (int i = 0; i < 16; i++)
+        create_thread(produce_user_thread + i, produce_user, user_mgr);
 
-    pthread_t user_do_thread;
-    create_thread(&user_do_thread, user_do, user_mgr);
+    pthread_t user_do_thread[16];
+    for (int i = 0; i < 16; i++)
+        create_thread(user_do_thread + i, user_do, user_mgr);
 
-    pthread_t consume_user_thread;
-    create_thread(&consume_user_thread, consume_user, user_mgr);
+    pthread_t consume_user_thread[16];
+    for (int i = 0; i < 16; i++)
+        create_thread(consume_user_thread + i, consume_user, user_mgr);
 
-    pthread_join(produce_user_thread, NULL);
-    pthread_join(user_do_thread, NULL);
-    pthread_join(consume_user_thread, NULL);
+    for (int i = 0; i < 16; i++)
+    {
+        pthread_join(produce_user_thread[i], NULL);
+        pthread_join(user_do_thread[i], NULL);
+        pthread_join(consume_user_thread[i], NULL);
+    }
 
     user_manager_free(&user_mgr);
 
@@ -66,9 +72,7 @@ static void* produce_user(void *arg)
         {
             user_t *user = user_new(uid);
             if (NULL != user) {
-                pthread_mutex_lock(&user->lock);
                 user_mgr->users_.insert(user_map_t::value_type(uid, user));
-                pthread_mutex_unlock(&user->lock);
             }
         }
         pthread_rwlock_unlock(&user_mgr->rwlock);
@@ -83,15 +87,14 @@ static void* user_do(void *arg)
 
     while (1)
     {
-        uint64_t uid = (uint64_t)rand() % 10000 + 1;
-
         pthread_rwlock_rdlock(&user_mgr->rwlock);
-        user_map_t::iterator itr = user_mgr->users_.find(uid);
+        user_map_t::iterator itr = user_mgr->users_.begin();
         if (itr != user_mgr->users_.end())
         {
             user_t *user = itr->second;
             pthread_mutex_lock(&user->lock);
             user->c = 'd';
+            printf("user_do\n");
             pthread_mutex_unlock(&user->lock);
         }
         pthread_rwlock_unlock(&user_mgr->rwlock);
@@ -102,6 +105,7 @@ static void* user_do(void *arg)
 
 static void* consume_user(void *arg)
 {
+    return NULL;
     user_manager_t *user_mgr = (user_manager_t *)arg;
 
     while (1)
