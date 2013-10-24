@@ -28,7 +28,17 @@ typedef struct {
     struct event_base *base;
 } LIBEVENT_DISPATCHER_THREAD;
 
+/*
+ * connecting info
+ */
+struct connecting_info {
+    LIBEVENT_THREAD *thread;
+    int fd;
+    char addr[16];
+    short port;
+};
+
 void thread_init(int nthreads, struct event_base *base);
-void dispatch_fd_new(int fd, char key);
+void dispatch_fd_new(int fd, char key, const char *addr, short port);
 
 #endif /* THREAD_H_INCLUDED */

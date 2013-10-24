@@ -12,22 +12,27 @@ void accept_cb(struct evconnlistener *, evutil_socket_t, struct sockaddr *, int,
 
 int main(int argc, char **argv)
 {
-    struct event *signal_event;
-    struct evconnlistener *listener;
-    struct sockaddr_in sa;
-    short port = 5555;
-
     struct event_base *main_base = event_base_new();
     if (NULL == main_base) {
         fprintf(stderr, "main_base = event_base_new() failed!\n");
         return 1;
     }
 
+    struct event *signal_event;
+
     signal_event = evsignal_new(main_base, SIGINT, signal_cb, (void *)main_base);
     if (NULL == signal_event || 0 != event_add(signal_event, NULL)) {
         fprintf(stderr, "create/add a signal event failed!\n");
         return 1;
     }
+
+    /* thread */
+    thread_init(8, main_base);
+
+    /* listener */
+    struct evconnlistener *listener;
+    struct sockaddr_in sa;
+    short port = 5555;
 
     bzero(&sa, sizeof(sa));
     sa.sin_family = AF_INET;
@@ -43,7 +48,8 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    thread_init(8, main_base);
+    /* connector */
+    dispatch_fd_new(-1, 't', "127.0.0.1", 8888);
 
     event_base_dispatch(main_base);
     event_base_free(main_base);

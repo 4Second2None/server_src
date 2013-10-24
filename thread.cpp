@@ -1,6 +1,7 @@
 #include "thread.h"
 
 #include <strings.h>
+#include <string.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -116,6 +117,7 @@ void conn_write_cb(struct bufferevent *, void *);
 void conn_event_cb(struct bufferevent *, short, void *);
 void connecting_event_cb(struct bufferevent *, short, void *);
 
+
 static void thread_libevent_process(int fd, short which, void *arg)
 {
     LIBEVENT_THREAD *me = (LIBEVENT_THREAD *)arg;
@@ -161,7 +163,12 @@ static void thread_libevent_process(int fd, short which, void *arg)
                     sa.sin_addr.s_addr = inet_addr(item->addr);
                     sa.sin_port = htons(item->port);
                     
-                    bufferevent_setcb(bev, NULL, NULL, connecting_event_cb, me);
+                    struct connecting_info * ci = (struct connecting_info *)malloc(sizeof(struct connecting_info));
+                    ci->thread = me;
+                    ci->fd = item->fd;
+                    strncpy(ci->addr, item->addr, 16);
+                    ci->port = item->port;
+                    bufferevent_setcb(bev, NULL, NULL, connecting_event_cb, ci);
                     printf("connecting:%s!\n", item->addr);
                     bufferevent_socket_connect(bev, (struct sockaddr *)&sa, sizeof(sa));
                 }
@@ -278,7 +285,7 @@ void thread_init(int nthreads, struct event_base *main_base)
 
 static int last_thread = -1;
 
-void dispatch_fd_new(int fd, char key) {
+void dispatch_fd_new(int fd, char key, const char *addr, short port) {
     CQ_ITEM *item = cqi_new();
     char buf[1];
     int tid = (last_thread + 1) % num_threads;
@@ -288,6 +295,11 @@ void dispatch_fd_new(int fd, char key) {
     last_thread = tid;
 
     item->fd = fd;
+    if ('t' == key)
+    {
+        strncpy(item->addr, addr, 16);
+        item->port = port;
+    }
     
     cq_push(thread->new_conn_queue, item);
 
