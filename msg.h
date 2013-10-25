@@ -1,6 +1,7 @@
 #ifndef MSG_H_INCLUDED
 #define MSG_H_INCLUDED
 
+typedef struct msg_head msg_head;
 struct msg_head
 {
 #define MAGIC_NUMBER 0xabcd

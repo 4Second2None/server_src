@@ -1,5 +1,7 @@
 #include "thread.h"
 
+#include <google/protobuf/stubs/common.h>
+
 #include <event2/listener.h>
 #include <event2/util.h>
 
@@ -14,6 +16,9 @@ void accept_cb(struct evconnlistener *, evutil_socket_t, struct sockaddr *, int,
 
 int main(int argc, char **argv)
 {
+    /* protobuf verify version */
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+
     struct event_base *main_base = event_base_new();
     if (NULL == main_base) {
         fprintf(stderr, "main_base = event_base_new() failed!\n");
@@ -65,9 +70,12 @@ int main(int argc, char **argv)
     }
 
     event_base_dispatch(main_base);
-    event_base_free(main_base);
 
     connector_free(center);
+    event_base_free(main_base);
+
+    /* shutdown protobuf */
+    google::protobuf::ShutdownProtobufLibrary();
 
     return 0;
 }

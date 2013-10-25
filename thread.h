@@ -1,6 +1,7 @@
 #ifndef THREAD_H_INCLUDED
 #define THREAD_H_INCLUDED
 
+#include "msg_protobuf.h"
 #include <event2/event.h>
 #include <event.h>
 
