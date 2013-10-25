@@ -202,13 +202,11 @@ static void thread_libevent_process(int fd, short which, void *arg)
                 if (NULL != item) {
                     conn *c = conn_new();
                     if (NULL == c) {
-                        close(item->fd);
                     } else {
                         struct bufferevent* bev = bufferevent_socket_new(me->base, item->fd,
                                 BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
                         if (NULL == bev) {
                             fprintf(stderr, "create bufferevent failed!\n");
-                            close(item->fd);
                         } else {
                             evbuffer *input = bufferevent_get_input(bev);
                             evbuffer_enable_locking(input, NULL);
@@ -232,18 +230,17 @@ static void thread_libevent_process(int fd, short which, void *arg)
                     connector *cr = (connector *)item->arg;
                     conn *c = conn_new();
                     if (NULL == c) {
-                        close(item->fd);
                     } else {
-                        c->bev = bufferevent_socket_new(me->base, item->fd,
+                        c->bev = bufferevent_socket_new(me->base, -1,
                                 BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
                         if (NULL == c->bev) {
                             fprintf(stderr, "create bufferevent failed!\n");
-                            close(item->fd);
                         } else {
                             evbuffer *input = bufferevent_get_input(c->bev);
                             evbuffer_enable_locking(input, NULL);
                             bufferevent_setcb(c->bev, NULL, NULL, connecting_event_cb, c);
                             cr->c = c;
+                            c->data = cr;
                             cr->state = STATE_NOT_CONNECTED;
                             printf("connecting!\n");
                             bufferevent_socket_connect(c->bev, cr->sa, cr->socklen);
@@ -385,7 +382,7 @@ void dispatch_conn_new(int fd, char key, void *arg) {
 
 /******************************* connector ********************************/
 
-connector *connector_new(int fd, struct sockaddr *sa, int socklen)
+connector *connector_new(struct sockaddr *sa, int socklen)
 {
     connector *cr = (connector *)malloc(sizeof(connector));
     if (NULL == cr) {

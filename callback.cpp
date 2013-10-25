@@ -14,7 +14,7 @@ void accept_cb(struct evconnlistener *l, evutil_socket_t fd, struct sockaddr *sa
     dispatch_conn_new(fd, 'c', NULL);
 }
 
-void rpc_cb(struct bufferevent *, unsigned char *, size_t);
+void rpc_cb(conn *, unsigned char *, size_t);
 void conn_read_cb(struct bufferevent *bev, void *arg)
 {
     size_t total_len;
@@ -75,7 +75,8 @@ void conn_read_cb(struct bufferevent *bev, void *arg)
             /* TODO frequency limit */
 
             /* callback */
-            rpc_cb(bev, buffer, msg_len);
+            conn *c = (conn *)arg;
+            rpc_cb(c, buffer, msg_len);
 
             if (evbuffer_drain(input, msg_len) < 0)
             {

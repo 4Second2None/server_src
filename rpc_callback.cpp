@@ -1,6 +1,6 @@
-#include <event2/bufferevent.h>
+#include "thread.h"
 
-void rpc_cb(struct bufferevent *bev, unsigned char *msg, size_t sz)
+void rpc_cb(conn *c, unsigned char *msg, size_t sz)
 {
 
 }

@@ -47,7 +47,7 @@ void dispatch_conn_new(int fd, char key, void *arg);
 conn *conn_new(int fd);
 int conn_add_to_freelist(conn *c);
 int conn_write(conn *c, unsigned char *msg, size_t sz);
-connector *connector_new(int fd, struct sockaddr *sa, int socklen);
+connector *connector_new(struct sockaddr *sa, int socklen);
 void connector_free(connector *cr);
 int connector_write(connector *cr, unsigned char *msg, size_t sz);
 

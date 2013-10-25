@@ -59,7 +59,7 @@ int main(int argc, char **argv)
     csa.sin_addr.s_addr = inet_addr("127.0.0.1");
     csa.sin_port = htons(5555);
 
-    connector *c = connector_new(-1, (struct sockaddr *)&csa, sizeof(csa));
+    connector *c = connector_new((struct sockaddr *)&csa, sizeof(csa));
     dispatch_conn_new(-1, 't', c);
 
     event_base_dispatch(main_base);
