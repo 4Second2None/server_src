@@ -120,37 +120,40 @@ static void conn_event_cb2(struct bufferevent *bev, short what, void *arg)
 
 static void go_connecting(int fd, short what, void *arg)
 {
-    connector *c = (connector *)arg;
-    bufferevent_socket_connect(c->bev, c->sa, c->socklen);
+    conn *c = (conn *)arg;
+    connector *cr = (connector *)c->data;
+    bufferevent_socket_connect(c->bev, cr->sa, cr->socklen);
 }
 
-static void delay_connecting(connector *c)
+static void delay_connecting(conn *c)
 {
-    if (NULL == c->timer) {
-        c->tv.tv_sec = 5;
-        c->tv.tv_usec = 0;
-        c->timer = evtimer_new(c->thread->base, go_connecting, c);
-        if (NULL == c->timer) {
+    connector *cr = (connector *)c->data;
+    if (NULL == cr->timer) {
+        cr->tv.tv_sec = 5;
+        cr->tv.tv_usec = 0;
+        cr->timer = evtimer_new(c->thread->base, go_connecting, c);
+        if (NULL == cr->timer) {
             fprintf(stderr, "evtimer_new failed!\n");
             return;
         }
     }
-    evtimer_add(c->timer, &c->tv);
+    evtimer_add(cr->timer, &cr->tv);
 }
 
 void connecting_event_cb(struct bufferevent *bev, short what, void *arg)
 {
-    connector *c = (connector *)arg;
+    conn *c = (conn *)arg;
 
     if (!(what & BEV_EVENT_CONNECTED)) {
         fprintf(stderr, "connecting failed!\n");
         delay_connecting(c);
     } else {
         printf("connect success!\n");
-        c->state = STATE_CONNECTED;
-        bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb2, c->thread);
+        connector *cr = (connector *)c->data;
+        cr->state = STATE_CONNECTED;
+        bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb2, c);
         bufferevent_enable(bev, EV_READ);
-        char msg[16];
-        connector_write(c, msg, 16);
+        unsigned char msg[16];
+        connector_write(cr, msg, 16);
     }
 }

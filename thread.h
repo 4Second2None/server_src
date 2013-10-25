@@ -8,9 +8,6 @@
 
 struct conn_queue;
 
-/*
- * worker
- */
 typedef struct {
     pthread_t thread_id;
     struct event_base *base;
@@ -20,34 +17,38 @@ typedef struct {
     struct conn_queue *new_conn_queue;
 } LIBEVENT_THREAD;
 
-/*
- * master
- */
 typedef struct {
     pthread_t thread_id;
     struct event_base *base;
 } LIBEVENT_DISPATCHER_THREAD;
 
-/*
- * connector
- */
-typedef struct {
+typedef struct conn conn;
+struct conn {
+    void *data;
+    bufferevent *bev;
     LIBEVENT_THREAD *thread;
+};
+
+typedef struct connector connector;
+struct connector {
 #define STATE_NOT_CONNECTED 0
 #define STATE_CONNECTED 1
     volatile int state;
-    int fd;
+    conn *c;
     struct sockaddr *sa;
     int socklen;
+    /* reconnect timer */
     struct event *timer;
     struct timeval tv;
-    bufferevent *bev;
-} connector;
+};
 
 void thread_init(int nthreads, struct event_base *base);
 void dispatch_conn_new(int fd, char key, void *arg);
+conn *conn_new(int fd);
+int conn_add_to_freelist(conn *c);
+int conn_write(conn *c, unsigned char *msg, size_t sz);
 connector *connector_new(int fd, struct sockaddr *sa, int socklen);
-void connector_free(connector *c);
-int connector_write(connector *c, char *msg, size_t sz);
+void connector_free(connector *cr);
+int connector_write(connector *cr, unsigned char *msg, size_t sz);
 
 #endif /* THREAD_H_INCLUDED */

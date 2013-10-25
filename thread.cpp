@@ -102,11 +102,83 @@ static CQ_ITEM *cq_pop(CQ *cq) {
     return item;
 }
 
+/******************************* connection ********************************/
+
+static conn **freeconns;
+static int freetotal;
+static int freecurr;
+/* lock for connection freelist */
+static pthread_mutex_t conn_lock = PTHREAD_MUTEX_INITIALIZER;
+
+void conn_init() {
+    freetotal = 200;
+    freecurr = 0;
+    if (NULL == (freeconns = (conn **)calloc(freetotal, sizeof(conn *)))) {
+        fprintf(stderr, "connection freelist alloc failed!\n");
+    }
+    return;
+}
+
+static conn *conn_from_freelist() {
+    conn *c;
+
+    pthread_mutex_lock(&conn_lock);
+    if (freecurr > 0) {
+        c = freeconns[--freecurr];
+    } else {
+        c = NULL;
+    }
+    pthread_mutex_unlock(&conn_lock);
+
+    return c;
+}
+
+conn *conn_new()
+{
+    conn *c = conn_from_freelist();
+    if (NULL == c) {
+        if (!(c = (conn *)calloc(1, sizeof(conn)))) {
+            fprintf(stderr, "connection alloc failed!\n");
+            return NULL;
+        }
+    }
+    return c;
+}
+
+int conn_add_to_freelist(conn *c) {
+    int ret = -1;
+    pthread_mutex_lock(&conn_lock);
+    if (freecurr < freetotal) {
+        freeconns[freecurr++] = c;
+        ret = 0;
+    } else {
+        size_t newsize = freetotal * 2;
+        conn **new_freeconns = (conn **)realloc(freeconns, sizeof(conn *) * newsize);
+        if (new_freeconns) {
+            freetotal = newsize;
+            freeconns = new_freeconns;
+            freeconns[freecurr++] = c;
+            ret = 0;
+        }
+    }
+    pthread_mutex_unlock(&conn_lock);
+    return ret;
+}
+
+int conn_write(conn *c, unsigned char *msg, size_t sz) {
+    if (c && c->bev) {
+        if (0 == bufferevent_write(c->bev, msg, sz)) {
+            return bufferevent_enable(c->bev, EV_WRITE);
+        }
+    }
+    return -1;
+}
+
+/******************************* worker thread ********************************/
+
 static LIBEVENT_DISPATCHER_THREAD dispatcher_thread;
 static LIBEVENT_THREAD *threads;
 static int num_threads;
-
-/******************************* worker thread ********************************/
 
 void conn_read_cb(struct bufferevent *, void *);
 void conn_write_cb(struct bufferevent *, void *);
@@ -128,17 +200,26 @@ static void thread_libevent_process(int fd, short which, void *arg)
                 item = cq_pop(me->new_conn_queue);
 
                 if (NULL != item) {
-                    struct bufferevent* bev = bufferevent_socket_new(me->base, item->fd, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
-                    if (NULL == bev) {
-                        fprintf(stderr, "create bufferevent failed!\n");
+                    conn *c = conn_new();
+                    if (NULL == c) {
                         close(item->fd);
+                    } else {
+                        struct bufferevent* bev = bufferevent_socket_new(me->base, item->fd,
+                                BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
+                        if (NULL == bev) {
+                            fprintf(stderr, "create bufferevent failed!\n");
+                            close(item->fd);
+                        } else {
+                            evbuffer *input = bufferevent_get_input(bev);
+                            evbuffer_enable_locking(input, NULL);
+                            bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb, c);
+                            bufferevent_enable(bev, EV_READ);
+                            c->data = NULL;
+                            c->bev = bev;
+                            c->thread = me;
+                            printf("new connection established!\n");
+                        }
                     }
-
-                    evbuffer *input = bufferevent_get_input(bev);
-                    evbuffer_enable_locking(input, NULL);
-                    bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb, me);
-                    bufferevent_enable(bev, EV_READ);
-                    printf("new connection established!\n");
                 }
                 cqi_free(item);
             }
@@ -148,21 +229,26 @@ static void thread_libevent_process(int fd, short which, void *arg)
                 item = cq_pop(me->new_conn_queue);
 
                 if (NULL != item && NULL != item->arg) {
-                    connector *c = (connector *)item->arg;
-                    c->thread = me;
-                    if (NULL == c->bev) {
-                        c->bev = bufferevent_socket_new(me->base, item->fd, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
+                    connector *cr = (connector *)item->arg;
+                    conn *c = conn_new();
+                    if (NULL == c) {
+                        close(item->fd);
+                    } else {
+                        c->bev = bufferevent_socket_new(me->base, item->fd,
+                                BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
                         if (NULL == c->bev) {
                             fprintf(stderr, "create bufferevent failed!\n");
                             close(item->fd);
+                        } else {
+                            evbuffer *input = bufferevent_get_input(c->bev);
+                            evbuffer_enable_locking(input, NULL);
+                            bufferevent_setcb(c->bev, NULL, NULL, connecting_event_cb, c);
+                            cr->c = c;
+                            cr->state = STATE_NOT_CONNECTED;
+                            printf("connecting!\n");
+                            bufferevent_socket_connect(c->bev, cr->sa, cr->socklen);
                         }
                     }
-
-                    evbuffer *input = bufferevent_get_input(c->bev);
-                    evbuffer_enable_locking(input, NULL);
-                    bufferevent_setcb(c->bev, NULL, NULL, connecting_event_cb, c);
-                    printf("connecting!\n");
-                    bufferevent_socket_connect(c->bev, c->sa, c->socklen);
                 }
                 cqi_free(item);
             }
@@ -301,40 +387,37 @@ void dispatch_conn_new(int fd, char key, void *arg) {
 
 connector *connector_new(int fd, struct sockaddr *sa, int socklen)
 {
-    connector *c = (connector *)malloc(sizeof(connector));
-    if (NULL == c) {
+    connector *cr = (connector *)malloc(sizeof(connector));
+    if (NULL == cr) {
         fprintf(stderr, "connector alloc failed!\n");
         return NULL;
     }
 
-    c->sa = (struct sockaddr *)malloc(socklen);
-    if (NULL == c->sa) {
+    cr->sa = (struct sockaddr *)malloc(socklen);
+    if (NULL == cr->sa) {
         fprintf(stderr, "sockaddr alloc failed!\n");
-        free(c);
+        free(cr);
         return NULL;
     }
 
-    memcpy(c->sa, sa, socklen);
-    c->thread = NULL;
-    c->fd = fd;
-    c->socklen = socklen;
-    c->timer = NULL;
-    c->bev = NULL;
-    return c;
+    cr->state = STATE_NOT_CONNECTED;
+    cr->c = NULL;
+    memcpy(cr->sa, sa, socklen);
+    cr->socklen = socklen;
+    cr->timer = NULL;
+    return cr;
 }
 
-void connector_free(connector *c)
+void connector_free(connector *cr)
 {
-    free(c->sa);
-    bufferevent_free(c->bev);
-    free(c);
+    free(cr->sa);
+    free(cr);
 }
 
-int connector_write(connector *c, char *msg, size_t sz)
+int connector_write(connector *cr, unsigned char *msg, size_t sz)
 {
-    if (c && c->state == STATE_CONNECTED && c->bev) {
-        if (0 == bufferevent_write(c->bev, msg, sz))
-            return bufferevent_enable(c->bev, EV_WRITE);
+    if (cr && cr->state == STATE_CONNECTED) {
+        return conn_write(cr->c, msg, sz);
     }
     return -1;
 }

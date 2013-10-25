@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
+void conn_init();
 static void signal_cb(evutil_socket_t, short, void *);
 void accept_cb(struct evconnlistener *, evutil_socket_t, struct sockaddr *, int, void *);
 
@@ -19,16 +20,18 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    conn_init();
+
+    /* thread */
+    thread_init(8, main_base);
     struct event *signal_event;
 
+    /* signal */
     signal_event = evsignal_new(main_base, SIGINT, signal_cb, (void *)main_base);
     if (NULL == signal_event || 0 != event_add(signal_event, NULL)) {
         fprintf(stderr, "create/add a signal event failed!\n");
         return 1;
     }
-
-    /* thread */
-    thread_init(8, main_base);
 
     /* listener */
     struct evconnlistener *listener;
