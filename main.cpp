@@ -1,6 +1,4 @@
-#include "thread.h"
-
-#include <google/protobuf/stubs/common.h>
+#include "net.h"
 
 #include <event2/listener.h>
 #include <event2/util.h>

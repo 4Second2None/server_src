@@ -1,5 +1,5 @@
-#ifndef THREAD_H_INCLUDED
-#define THREAD_H_INCLUDED
+#ifndef NET_H_INCLUDED
+#define NET_H_INCLUDED
 
 #include "msg_protobuf.h"
 
@@ -112,4 +112,4 @@ int connector_write(connector *cr, unsigned short cmd, uint64_t uid, S *s)
 int connector_write(connector *cr, unsigned short cmd);
 int connector_write(connector *cr, unsigned short cmd, uint64_t uid);
 
-#endif /* THREAD_H_INCLUDED */
+#endif /* NET_H_INCLUDED */
