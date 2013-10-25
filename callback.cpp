@@ -157,14 +157,7 @@ void connecting_event_cb(struct bufferevent *bev, short what, void *arg)
 
         for (int i = 0; i < 3; i++)
         {
-            unsigned char msg[512];
-            unsigned short *cur;
-            cur = (unsigned short *)msg;
-            *cur++ = htons((unsigned short)MAGIC_NUMBER);
-            *cur++ = htons((unsigned short)0);
-            *cur++ = htons((unsigned short)0);
-            *cur = htons((unsigned short)0);
-            connector_write(cr, msg, MSG_HEAD_SIZE);
+            connector_write(cr, 0);
         }
     }
 }

@@ -2,6 +2,7 @@
 #define THREAD_H_INCLUDED
 
 #include "msg_protobuf.h"
+
 #include <event2/event.h>
 #include <event.h>
 
@@ -44,6 +45,7 @@ struct connector {
 };
 
 void thread_init(int nthreads, struct event_base *base);
+
 void dispatch_conn_new(int fd, char key, void *arg);
 conn *conn_new(int fd);
 int conn_add_to_freelist(conn *c);
@@ -51,5 +53,63 @@ int conn_write(conn *c, unsigned char *msg, size_t sz);
 connector *connector_new(struct sockaddr *sa, int socklen);
 void connector_free(connector *cr);
 int connector_write(connector *cr, unsigned char *msg, size_t sz);
+
+template<typename S>
+int conn_write(conn *c, unsigned short cmd, S *s)
+{
+    char *msg;
+    size_t sz;
+    int ret = create_msg(cmd, s, &msg, &sz);
+    if (ret != 0)
+        return ret;
+    ret = conn_write(c, msg, sz);
+    free(msg);
+    return ret;
+}
+
+template<typename S>
+int conn_write(conn *c, unsigned short cmd, uint64_t uid, S *s)
+{
+    char *msg;
+    size_t sz;
+    int ret = create_msg(cmd, uid, s, &msg, &sz);
+    if (ret != 0)
+        return ret;
+    ret = conn_write(c, msg, sz);
+    free(msg);
+    return ret;
+}
+
+int conn_write(conn *c, unsigned short cmd);
+int conn_write(conn *c, unsigned short cmd, uint64_t uid);
+
+template<typename S>
+int connector_write(connector *cr, unsigned short cmd, S *s)
+{
+    char *msg;
+    size_t sz;
+    int ret = create_msg(cmd, s, &msg, &sz);
+    if (ret != 0)
+        return ret;
+    ret = connector_write(cr, msg, sz);
+    free(msg);
+    return ret;
+}
+
+template<typename S>
+int connector_write(connector *cr, unsigned short cmd, uint64_t uid, S *s)
+{
+    char *msg;
+    size_t sz;
+    int ret = create_msg(cmd, uid, s, &msg, &sz);
+    if (ret != 0)
+        return ret;
+    ret = connector_write(cr, msg, sz);
+    free(msg);
+    return ret;
+}
+
+int connector_write(connector *cr, unsigned short cmd);
+int connector_write(connector *cr, unsigned short cmd, uint64_t uid);
 
 #endif /* THREAD_H_INCLUDED */
