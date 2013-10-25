@@ -154,7 +154,17 @@ void connecting_event_cb(struct bufferevent *bev, short what, void *arg)
         cr->state = STATE_CONNECTED;
         bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb2, c);
         bufferevent_enable(bev, EV_READ);
-        unsigned char msg[16];
-        connector_write(cr, msg, 16);
+
+        for (int i = 0; i < 3; i++)
+        {
+            unsigned char msg[512];
+            unsigned short *cur;
+            cur = (unsigned short *)msg;
+            *cur++ = htons((unsigned short)MAGIC_NUMBER);
+            *cur++ = htons((unsigned short)0);
+            *cur++ = htons((unsigned short)0);
+            *cur = htons((unsigned short)0);
+            connector_write(cr, msg, MSG_HEAD_SIZE);
+        }
     }
 }

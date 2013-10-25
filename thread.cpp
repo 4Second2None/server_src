@@ -3,6 +3,7 @@
 #include <strings.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -13,7 +14,7 @@
 typedef struct conn_queue_item CQ_ITEM;
 struct conn_queue_item {
     int fd;
-    void *arg;
+    void *data;
     CQ_ITEM *next;
 };
 
@@ -226,21 +227,22 @@ static void thread_libevent_process(int fd, short which, void *arg)
             {
                 item = cq_pop(me->new_conn_queue);
 
-                if (NULL != item && NULL != item->arg) {
-                    connector *cr = (connector *)item->arg;
+                if (NULL != item) {
+                    connector *cr = (connector *)item->data;
                     conn *c = conn_new();
                     if (NULL == c) {
                     } else {
-                        c->bev = bufferevent_socket_new(me->base, -1,
+                        struct bufferevent *bev = bufferevent_socket_new(me->base, -1,
                                 BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
-                        if (NULL == c->bev) {
+                        if (NULL == bev) {
                             fprintf(stderr, "create bufferevent failed!\n");
                         } else {
-                            evbuffer *input = bufferevent_get_input(c->bev);
+                            evbuffer *input = bufferevent_get_input(bev);
                             evbuffer_enable_locking(input, NULL);
-                            bufferevent_setcb(c->bev, NULL, NULL, connecting_event_cb, c);
-                            cr->c = c;
+                            bufferevent_setcb(bev, NULL, NULL, connecting_event_cb, c);
+                            c->bev = bev;
                             c->data = cr;
+                            cr->c = c;
                             cr->state = STATE_NOT_CONNECTED;
                             printf("connecting!\n");
                             bufferevent_socket_connect(c->bev, cr->sa, cr->socklen);
@@ -370,7 +372,7 @@ void dispatch_conn_new(int fd, char key, void *arg) {
     last_thread = tid;
 
     item->fd = fd;
-    item->arg = arg;
+    item->data = arg;
     
     cq_push(thread->new_conn_queue, item);
 

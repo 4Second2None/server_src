@@ -52,18 +52,22 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* connector */
+    /* connector to center */
     struct sockaddr_in csa;
     bzero(&csa, sizeof(csa));
     csa.sin_family = AF_INET;
     csa.sin_addr.s_addr = inet_addr("127.0.0.1");
     csa.sin_port = htons(5555);
 
-    connector *c = connector_new((struct sockaddr *)&csa, sizeof(csa));
-    dispatch_conn_new(-1, 't', c);
+    connector *center = connector_new((struct sockaddr *)&csa, sizeof(csa));
+    if (center) {
+        dispatch_conn_new(-1, 't', center);
+    }
 
     event_base_dispatch(main_base);
     event_base_free(main_base);
+
+    connector_free(center);
 
     return 0;
 }
