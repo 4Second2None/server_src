@@ -1,5 +1,7 @@
 #include "cmd.h"
 
+#include <stdio.h>
+
 int check_cmd()
 {
     if (LE_END >= EL_BEGIN) { fprintf(stderr, "LE_END overflow!\n"); return -1; }

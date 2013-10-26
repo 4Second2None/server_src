@@ -1,4 +1,5 @@
 #include "net.h"
+#include "cmd.h"
 
 #include <strings.h>
 #include <netinet/in.h>
@@ -13,6 +14,10 @@ void center_rpc_cb(conn *, unsigned char *, size_t);
 
 int main(int argc, char **argv)
 {
+    if (0 != check_cmd()) {
+        return 1;
+    }
+
     /* protobuf verify version */
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
