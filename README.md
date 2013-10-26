@@ -1,4 +1,4 @@
-gate_src
+server_src
 ========
 
-using libevent, mmorpg gateway
+mmorpg, using libevent, protobuf
