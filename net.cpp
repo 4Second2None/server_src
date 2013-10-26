@@ -213,7 +213,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
                             evbuffer_enable_locking(input, NULL);
                             bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb, c);
                             bufferevent_enable(bev, EV_READ);
-                            c->data = NULL;
+                            c->data = item->data;
                             c->bev = bev;
                             c->thread = me;
                             printf("new connection established!\n");
@@ -382,9 +382,41 @@ void dispatch_conn_new(int fd, char key, void *arg) {
     }
 }
 
+/******************************* listener ********************************/
+
+void accept_cb(struct evconnlistener *, evutil_socket_t, struct sockaddr *, int, void *);
+listener *listener_new(struct event_base* base, struct sockaddr *sa, int socklen, rpc_cb_func rpc)
+{
+    listener * l = (listener *)malloc(sizeof(listener));
+    if (NULL == l) {
+        fprintf(stderr, "listener alloc failed!\n");
+        return NULL;
+    }
+
+    /* listener */
+    struct evconnlistener *listener = evconnlistener_new_bind(base, accept_cb, (void *)l,
+            LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
+            (struct sockaddr *)sa, socklen);
+
+    if (NULL == listener) {
+        fprintf(stderr, "create listener failed!\n");
+        free(l);
+        return NULL;
+    }
+
+    l->cb.rpc = rpc;
+    l->l = listener;
+    return l;
+}
+
+void listener_free(listener *l)
+{
+
+}
+
 /******************************* connector ********************************/
 
-connector *connector_new(struct sockaddr *sa, int socklen)
+connector *connector_new(struct sockaddr *sa, int socklen, rpc_cb_func rpc)
 {
     connector *cr = (connector *)malloc(sizeof(connector));
     if (NULL == cr) {
@@ -399,11 +431,13 @@ connector *connector_new(struct sockaddr *sa, int socklen)
         return NULL;
     }
 
+    cr->cb.rpc = rpc;
     cr->state = STATE_NOT_CONNECTED;
     cr->c = NULL;
     memcpy(cr->sa, sa, socklen);
     cr->socklen = socklen;
     cr->timer = NULL;
+    dispatch_conn_new(-1, 't', cr);
     return cr;
 }
 

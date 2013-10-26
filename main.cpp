@@ -1,8 +1,5 @@
 #include "net.h"
 
-#include <event2/listener.h>
-#include <event2/util.h>
-
 #include <strings.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -10,7 +7,10 @@
 
 void conn_init();
 static void signal_cb(evutil_socket_t, short, void *);
-void accept_cb(struct evconnlistener *, evutil_socket_t, struct sockaddr *, int, void *);
+
+/* rpc callback */
+void client_rpc_cb(conn *, unsigned char *, size_t);
+void gate_rpc_cb(conn *, unsigned char *, size_t);
 
 int main(int argc, char **argv)
 {
@@ -36,40 +36,36 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* listener */
-    struct evconnlistener *listener;
+    /* listener for client */
     struct sockaddr_in sa;
-    short port = 5555;
-
     bzero(&sa, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    sa.sin_port = htons(port);
+    sa.sin_port = htons(5555);
 
-    listener = evconnlistener_new_bind(main_base, accept_cb, (void *)main_base,
-            LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
-            (struct sockaddr *)&sa, sizeof(sa));
-
-    if (NULL == listener) {
-        fprintf(stderr, "create listener failed!\n");
+    listener *lc = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), client_rpc_cb);
+    if (NULL == lc) {
+        fprintf(stderr, "create client listener failed!\n");
         return 1;
     }
 
-    /* connector to center */
+    /* connector to gate */
     struct sockaddr_in csa;
     bzero(&csa, sizeof(csa));
     csa.sin_family = AF_INET;
     csa.sin_addr.s_addr = inet_addr("127.0.0.1");
     csa.sin_port = htons(5555);
 
-    connector *center = connector_new((struct sockaddr *)&csa, sizeof(csa));
-    if (center) {
-        dispatch_conn_new(-1, 't', center);
+    connector *cg = connector_new((struct sockaddr *)&csa, sizeof(csa), gate_rpc_cb);
+    if (NULL == cg) {
+        fprintf(stderr, "create center connector failed!\n");
+        return 1;
     }
 
     event_base_dispatch(main_base);
 
-    connector_free(center);
+    connector_free(cg);
+    listener_free(lc);
     event_base_free(main_base);
 
     /* shutdown protobuf */

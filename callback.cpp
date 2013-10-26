@@ -11,10 +11,9 @@
 void accept_cb(struct evconnlistener *l, evutil_socket_t fd, struct sockaddr *sa, int socklen, void *arg)
 {
     printf("accept_cb\n");
-    dispatch_conn_new(fd, 'c', NULL);
+    dispatch_conn_new(fd, 'c', arg);
 }
 
-void rpc_cb(conn *, unsigned char *, size_t);
 void conn_read_cb(struct bufferevent *bev, void *arg)
 {
     size_t total_len;
@@ -76,7 +75,9 @@ void conn_read_cb(struct bufferevent *bev, void *arg)
 
             /* callback */
             conn *c = (conn *)arg;
-            rpc_cb(c, buffer, msg_len);
+            user_callback *cb = (user_callback *)(c->data);
+            if (cb->rpc)
+                (*(cb->rpc))(c, buffer, msg_len);
 
             if (evbuffer_drain(input, msg_len) < 0)
             {
