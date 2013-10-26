@@ -60,6 +60,7 @@ typedef struct {
 void thread_init(int nthreads, struct event_base *base);
 
 /* connection */
+void conn_init();
 void dispatch_conn_new(int fd, char key, void *arg);
 conn *conn_new(int fd);
 int conn_add_to_freelist(conn *c);

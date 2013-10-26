@@ -5,7 +5,6 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
-void conn_init();
 static void signal_cb(evutil_socket_t, short, void *);
 
 /* rpc callback */
@@ -41,7 +40,7 @@ int main(int argc, char **argv)
     bzero(&sa, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    sa.sin_port = htons(5555);
+    sa.sin_port = htons(42000);
 
     listener *lc = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), client_rpc_cb);
     if (NULL == lc) {
@@ -49,12 +48,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* connector to gate */
+    /* connector to center */
     struct sockaddr_in csa;
     bzero(&csa, sizeof(csa));
     csa.sin_family = AF_INET;
     csa.sin_addr.s_addr = inet_addr("127.0.0.1");
-    csa.sin_port = htons(5555);
+    csa.sin_port = htons(43000);
 
     connector *cg = connector_new((struct sockaddr *)&csa, sizeof(csa), gate_rpc_cb);
     if (NULL == cg) {

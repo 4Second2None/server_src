@@ -242,6 +242,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
                             bufferevent_setcb(bev, NULL, NULL, connecting_event_cb, c);
                             c->bev = bev;
                             c->data = cr;
+                            c->thread = me;
                             cr->c = c;
                             cr->state = STATE_NOT_CONNECTED;
                             printf("connecting!\n");

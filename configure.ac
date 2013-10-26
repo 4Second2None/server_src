@@ -8,6 +8,7 @@ AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 LT_INIT
+${CXXFLAGS="-Wall -g"}
 
 # Checks for programs.
 AC_PROG_CXX
@@ -38,6 +39,8 @@ AC_CHECK_FUNCS([bzero memset strerror])
 
 AC_CONFIG_FILES([
                  Makefile
+                 center_src/Makefile
                  gate_src/Makefile
+                 login_src/Makefile
                  ])
 AC_OUTPUT
