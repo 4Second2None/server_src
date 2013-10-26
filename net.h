@@ -77,7 +77,7 @@ int connector_write(connector *cr, unsigned char *msg, size_t sz);
 template<typename S>
 int conn_write(conn *c, unsigned short cmd, S *s)
 {
-    char *msg;
+    unsigned char *msg;
     size_t sz;
     int ret = create_msg(cmd, s, &msg, &sz);
     if (ret != 0)
@@ -90,7 +90,7 @@ int conn_write(conn *c, unsigned short cmd, S *s)
 template<typename S>
 int conn_write(conn *c, unsigned short cmd, uint64_t uid, S *s)
 {
-    char *msg;
+    unsigned char *msg;
     size_t sz;
     int ret = create_msg(cmd, uid, s, &msg, &sz);
     if (ret != 0)
@@ -106,9 +106,9 @@ int conn_write(conn *c, unsigned short cmd, uint64_t uid);
 template<typename S>
 int connector_write(connector *cr, unsigned short cmd, S *s)
 {
-    char *msg;
+    unsigned char *msg;
     size_t sz;
-    int ret = create_msg(cmd, s, &msg, &sz);
+    int ret = create_msg<S>(cmd, s, &msg, &sz);
     if (ret != 0)
         return ret;
     ret = connector_write(cr, msg, sz);
@@ -119,7 +119,7 @@ int connector_write(connector *cr, unsigned short cmd, S *s)
 template<typename S>
 int connector_write(connector *cr, unsigned short cmd, uint64_t uid, S *s)
 {
-    char *msg;
+    unsigned char *msg;
     size_t sz;
     int ret = create_msg(cmd, uid, s, &msg, &sz);
     if (ret != 0)

@@ -1,5 +1,6 @@
 #include "net.h"
 #include "msg.h"
+#include "test.pb.h"
 
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
@@ -158,7 +159,9 @@ void connecting_event_cb(struct bufferevent *bev, short what, void *arg)
 
         for (int i = 0; i < 3; i++)
         {
-            connector_write(cr, 0);
+            A a;
+            a.set_info("abc");
+            connector_write<A>(cr, 1, &a);
         }
     }
 }
