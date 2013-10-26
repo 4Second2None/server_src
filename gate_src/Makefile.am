@@ -10,6 +10,7 @@ bin_PROGRAMS = gate
 
 gate_SOURCES = \
 			   ../common_src/callback.cpp \
+			   ../common_src/log.cpp \
 			   ../common_src/msg_protobuf.cpp \
 			   ../common_src/net.cpp \
 			   ../proto_src/cmd_util.cpp \

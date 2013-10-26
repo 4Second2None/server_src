@@ -1,4 +1,5 @@
 #include "net.h"
+#include "log.h"
 
 #include <strings.h>
 #include <string.h>
@@ -23,6 +24,7 @@ struct conn_queue {
     CQ_ITEM *head;
     CQ_ITEM *tail;
     pthread_mutex_t lock;
+    pthread_cond_t cond;
 };
 
 static CQ_ITEM *cqi_freelist;
@@ -51,7 +53,7 @@ static CQ_ITEM *cqi_new() {
 
         pthread_mutex_lock(&cqi_freelist_lock);
         item[ITEMS_PER_ALLOC - 1].next = cqi_freelist;
-        cqi_freelist = &item[i];
+        cqi_freelist = &item[1];
         pthread_mutex_unlock(&cqi_freelist_lock);
     }
 
@@ -69,6 +71,7 @@ static void cqi_free(CQ_ITEM *item) {
 
 static void cq_init(CQ *cq) {
     pthread_mutex_init(&cq->lock, NULL);
+    pthread_cond_init(&cq->cond, NULL);
     cq->head = NULL;
     cq->tail = NULL;
 }
@@ -82,6 +85,7 @@ static void cq_push(CQ *cq, CQ_ITEM *item) {
     else
         cq->tail->next = item;
     cq->tail = item;
+    pthread_cond_signal(&cq->cond);
     pthread_mutex_unlock(&cq->lock);
 }
 
@@ -112,7 +116,7 @@ void conn_init() {
     freetotal = 200;
     freecurr = 0;
     if (NULL == (freeconns = (conn **)calloc(freetotal, sizeof(conn *)))) {
-        fprintf(stderr, "connection freelist alloc failed!\n");
+        mfatal("connection freelist alloc failed!");
     }
     return;
 }
@@ -362,6 +366,11 @@ static int last_thread = -1;
 
 void dispatch_conn_new(int fd, char key, void *arg) {
     CQ_ITEM *item = cqi_new();
+    if (NULL == item) {
+        merror("cqi_new failed!");
+        return;
+    }
+
     char buf[1];
     int tid = (last_thread + 1) % num_threads;
 
