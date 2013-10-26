@@ -19,11 +19,6 @@ int main(int argc, char **argv)
     if (0 != LOG_OPEN("./login", LOG_LEVEL_DEBUG, -1)) {
         return 1;
     }
-    mfatal("test fatal!");
-    merror("test error!");
-    mwarn("test warn!");
-    minfo("test info!");
-    mdebug("test debug!");
 
     if (0 != check_cmd()) {
         return 1;
@@ -34,7 +29,7 @@ int main(int argc, char **argv)
 
     struct event_base *main_base = event_base_new();
     if (NULL == main_base) {
-        fprintf(stderr, "main_base = event_base_new() failed!\n");
+        mfatal("main_base = event_base_new() failed!");
         return 1;
     }
 
@@ -47,7 +42,7 @@ int main(int argc, char **argv)
     /* signal */
     signal_event = evsignal_new(main_base, SIGINT, signal_cb, (void *)main_base);
     if (NULL == signal_event || 0 != event_add(signal_event, NULL)) {
-        fprintf(stderr, "create/add a signal event failed!\n");
+        mfatal("create/add a signal event failed!");
         return 1;
     }
 
@@ -60,7 +55,7 @@ int main(int argc, char **argv)
 
     listener *lc = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), client_rpc_cb);
     if (NULL == lc) {
-        fprintf(stderr, "create client listener failed!\n");
+        mfatal("create client listener failed!");
         return 1;
     }
 
@@ -72,7 +67,7 @@ int main(int argc, char **argv)
 
     listener *le = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), center_rpc_cb);
     if (NULL == le) {
-        fprintf(stderr, "create center listener failed!\n");
+        mfatal("create center listener failed!");
         return 1;
     }
 
@@ -93,7 +88,7 @@ int main(int argc, char **argv)
 
 void signal_cb(evutil_socket_t fd, short what, void *arg)
 {
-    printf("signal_cb\n");
+    mdebug("signal_cb");
     struct event_base *base = (struct event_base *)arg;
     event_base_loopbreak(base);
 }
