@@ -1,3 +1,4 @@
+#include "log.h"
 #include "net.h"
 #include "cmd.h"
 
@@ -14,6 +15,11 @@ void center_rpc_cb(conn *, unsigned char *, size_t);
 
 int main(int argc, char **argv)
 {
+    /* open log */
+    if (0 != LOG_OPEN("./login", LOG_LEVEL_DEBUG, -1)) {
+        return 1;
+    }
+
     if (0 != check_cmd()) {
         return 1;
     }
@@ -73,6 +79,9 @@ int main(int argc, char **argv)
 
     /* shutdown protobuf */
     google::protobuf::ShutdownProtobufLibrary();
+
+    /* close log */
+    LOG_CLOSE();
 
     return 0;
 }

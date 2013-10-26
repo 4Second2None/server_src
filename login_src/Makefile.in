@@ -47,10 +47,10 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_login_OBJECTS = callback.$(OBJEXT) msg_protobuf.$(OBJEXT) \
-	net.$(OBJEXT) cmd_util.$(OBJEXT) test.pb.$(OBJEXT) \
-	client_rpc_callback.$(OBJEXT) center_rpc_callback.$(OBJEXT) \
-	main.$(OBJEXT)
+am_login_OBJECTS = callback.$(OBJEXT) log.$(OBJEXT) \
+	msg_protobuf.$(OBJEXT) net.$(OBJEXT) cmd_util.$(OBJEXT) \
+	test.pb.$(OBJEXT) client_rpc_callback.$(OBJEXT) \
+	center_rpc_callback.$(OBJEXT) main.$(OBJEXT)
 login_OBJECTS = $(am_login_OBJECTS)
 login_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -194,6 +194,7 @@ AM_CXXFLAGS =
 login_LDADD = -lpthread -levent -lprotobuf
 login_SOURCES = \
 			   ../common_src/callback.cpp \
+			   ../common_src/log.cpp \
 			   ../common_src/msg_protobuf.cpp \
 			   ../common_src/net.cpp \
 			   ../proto_src/cmd_util.cpp \
@@ -293,6 +294,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/center_rpc_callback.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/client_rpc_callback.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/log.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msg_protobuf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net.Po@am__quote@
@@ -332,6 +334,20 @@ callback.obj: ../common_src/callback.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../common_src/callback.cpp' object='callback.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o callback.obj `if test -f '../common_src/callback.cpp'; then $(CYGPATH_W) '../common_src/callback.cpp'; else $(CYGPATH_W) '$(srcdir)/../common_src/callback.cpp'; fi`
+
+log.o: ../common_src/log.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT log.o -MD -MP -MF $(DEPDIR)/log.Tpo -c -o log.o `test -f '../common_src/log.cpp' || echo '$(srcdir)/'`../common_src/log.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/log.Tpo $(DEPDIR)/log.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../common_src/log.cpp' object='log.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o log.o `test -f '../common_src/log.cpp' || echo '$(srcdir)/'`../common_src/log.cpp
+
+log.obj: ../common_src/log.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT log.obj -MD -MP -MF $(DEPDIR)/log.Tpo -c -o log.obj `if test -f '../common_src/log.cpp'; then $(CYGPATH_W) '../common_src/log.cpp'; else $(CYGPATH_W) '$(srcdir)/../common_src/log.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/log.Tpo $(DEPDIR)/log.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='../common_src/log.cpp' object='log.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o log.obj `if test -f '../common_src/log.cpp'; then $(CYGPATH_W) '../common_src/log.cpp'; else $(CYGPATH_W) '$(srcdir)/../common_src/log.cpp'; fi`
 
 msg_protobuf.o: ../common_src/msg_protobuf.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT msg_protobuf.o -MD -MP -MF $(DEPDIR)/msg_protobuf.Tpo -c -o msg_protobuf.o `test -f '../common_src/msg_protobuf.cpp' || echo '$(srcdir)/'`../common_src/msg_protobuf.cpp

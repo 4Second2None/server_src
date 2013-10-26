@@ -23,7 +23,6 @@ struct conn_queue {
     CQ_ITEM *head;
     CQ_ITEM *tail;
     pthread_mutex_t lock;
-    pthread_cond_t cond;
 };
 
 static CQ_ITEM *cqi_freelist;
@@ -70,7 +69,6 @@ static void cqi_free(CQ_ITEM *item) {
 
 static void cq_init(CQ *cq) {
     pthread_mutex_init(&cq->lock, NULL);
-    pthread_cond_init(&cq->cond, NULL);
     cq->head = NULL;
     cq->tail = NULL;
 }
@@ -84,7 +82,6 @@ static void cq_push(CQ *cq, CQ_ITEM *item) {
     else
         cq->tail->next = item;
     cq->tail = item;
-    pthread_cond_signal(&cq->cond);
     pthread_mutex_unlock(&cq->lock);
 }
 
