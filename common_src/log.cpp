@@ -65,6 +65,8 @@ static LQ_ITEM *lq_pop(LQ *lq) {
 
 /************************************* log impl *************************************/
 
+log glog;
+
 static int create_file(FILE **f, const char* path, time_t t)
 {
     if (NULL != *f) {
@@ -79,7 +81,7 @@ static int create_file(FILE **f, const char* path, time_t t)
     snprintf(buf, 1024, "%s%s", path, timestamp);
     buf[1023] = '\0';
 
-    if (NULL == (*f = fopen(buf, "a+"))) {
+    if (NULL == (*f = fopen(buf, "at+"))) {
         fprintf(stderr, "fopen path:%s failed!\n", buf);
         return -1;
     }
@@ -91,6 +93,75 @@ static pthread_t thread;
 
 static void do_log_item(log *l, LQ_ITEM *item)
 {
+    const char *clr = "\033[0m";
+
+    /* color clear */
+    const char *lv_color = NULL;
+    if (item->level == LOG_LEVEL_FATAL)
+        lv_color = "\033[35m";
+    else if (item->level == LOG_LEVEL_ERROR)
+        lv_color = "\033[31m";
+    else if (item->level == LOG_LEVEL_WARN)
+        lv_color = "\033[36m";
+    else if (item->level == LOG_LEVEL_INFO)
+        lv_color = "\033[33m";
+    else if (item->level == LOG_LEVEL_DEBUG)
+        lv_color = "\033[0m";
+
+    /* time */
+    char timestamp[32];
+    struct tm *ptm = localtime(&(item->tm));
+    strftime(timestamp, 32, "%H:%M:%S ", ptm);
+    timestamp[31] = '\0';
+
+    /* level text */
+    const char *lv_text = NULL;
+    if (item->level == LOG_LEVEL_FATAL)
+        lv_text = "[fatal] ";
+    else if (item->level == LOG_LEVEL_ERROR)
+        lv_text = "[error] ";
+    else if (item->level == LOG_LEVEL_WARN)
+        lv_text = "[warn ] ";
+    else if (item->level == LOG_LEVEL_INFO)
+        lv_text = "[info ] ";
+    else if (item->level == LOG_LEVEL_DEBUG)
+        lv_text = "[debug] ";
+
+    /* thread */
+    char thread_info[32];
+    snprintf(thread_info, 32, "[tid=%lu] ", item->thread);
+    thread_info[31] = '\0';
+
+    if (l->ctrl_stdout) {
+        if (l->ctrl_locate) {
+            char buf[1024];
+            snprintf(buf, 1024, "%s%s%s%s%s%s%s%s\n",
+                    clr, lv_color, timestamp, lv_text, thread_info, item->locate, item->context, clr);
+            buf[1023] = '\0';
+            printf(buf);
+        } else {
+            char buf[1024];
+            snprintf(buf, 1024, "%s%s%s%s%s%s%s\n",
+                    clr, lv_color, timestamp, lv_text, thread_info, item->context, clr);
+            buf[1023] = '\0';
+            printf(buf);
+        }
+    }
+
+    if (l->ctrl_locate) {
+        char buf[1024];
+        snprintf(buf, 1024, "%s%s%s%s%s\n",
+                timestamp, lv_text, thread_info, item->locate, item->context);
+        buf[1023]= '\0';
+        fwrite(buf, strlen(buf), 1, l->f);
+    } else {
+        char buf[1024];
+        snprintf(buf, 1024, "%s%s%s%s\n",
+                timestamp, lv_text, thread_info, item->context);
+        buf[1023]= '\0';
+        fwrite(buf, strlen(buf), 1, l->f);
+    }
+
     /* free */
     if (item->locate)
         free(item->locate);
@@ -108,7 +179,7 @@ static void *log_thread_func(void *arg)
         LQ_ITEM *item = lq_pop(&slq);
         if (NULL == item) {
             if (l->run)
-                sleep(10);
+                sleep(1);
             else
                 break;
         } else {
@@ -128,22 +199,11 @@ int log_open(log *l, const char *path, int lv, int ctrl)
 
     lq_init(&slq);
 
-    /* create thread for writing asynchronously */
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    int ret = pthread_create(&thread, &attr, log_thread_func, l);
-    if (0 != ret) {
-        fprintf(stderr, "can't create log thread:%s!\n", strerror(ret));
-        return -1;
-    }
-
     strncpy(l->pathname, path, 512);
     l->pathname[511] = '\0';
     l->f = NULL;
     l->level = lv;
     l->ctrl_stdout = ctrl & LOG_CTRL_STDOUT;
-    l->ctrl_timestamp = ctrl & LOG_CTRL_TIMESTAMP;
-    l->ctrl_thread = ctrl & LOG_CTRL_THREAD;
     l->ctrl_locate = ctrl & LOG_CTRL_LOCATE;
     time_t t = time(NULL);
     l->last_touch = t;
@@ -153,6 +213,16 @@ int log_open(log *l, const char *path, int lv, int ctrl)
     }
 
     l->run = 1;
+
+    /* create thread for writing asynchronously */
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    int ret = pthread_create(&thread, &attr, log_thread_func, l);
+    if (0 != ret) {
+        fprintf(stderr, "can't create log thread:%s!\n", strerror(ret));
+        return -1;
+    }
+
     return 0;
 }
 
@@ -191,9 +261,7 @@ void log_write(log *l, int lv, const char *file, int line, const char *func, con
     } else {
         item->locate = NULL;
     }
-    if (l->ctrl_thread) {
-        item->thread = syscall(SYS_gettid);
-    }
+    item->thread = syscall(SYS_gettid);
     item->context = (char *)malloc(1024);
     if (NULL == item->context) {
         fprintf(stderr, "item->context alloc failed!\n");
@@ -208,5 +276,3 @@ void log_write(log *l, int lv, const char *file, int line, const char *func, con
 
     lq_push(&slq, item);
 }
-
-log glog;

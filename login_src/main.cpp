@@ -19,6 +19,11 @@ int main(int argc, char **argv)
     if (0 != LOG_OPEN("./login", LOG_LEVEL_DEBUG, -1)) {
         return 1;
     }
+    mfatal("test fatal!");
+    merror("test error!");
+    mwarn("test warn!");
+    minfo("test info!");
+    mdebug("test debug!");
 
     if (0 != check_cmd()) {
         return 1;

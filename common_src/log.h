@@ -5,15 +5,14 @@
 #include <time.h>
 
 #define LOG_LEVEL_FATAL 5
-#define LOG_LEVEL_ERRoR 4
+#define LOG_LEVEL_ERROR 4
 #define LOG_LEVEL_WARN  3
 #define LOG_LEVEL_INFO  2
 #define LOG_LEVEL_DEBUG 1
 
-#define LOG_CTRL_STDOUT 1
-#define LOG_CTRL_TIMESTAMP 2
-#define LOG_CTRL_THREAD 4
-#define LOG_CTRL_LOCATE 8
+#define LOG_CTRL_STDOUT    1
+#define LOG_CTRL_THREAD    2
+#define LOG_CTRL_LOCATE    4
 
 #define LOG_OPEN(path, lv, ctrl) log_open(&glog, path, lv, ctrl)
 #define LOG_CLOSE() log_close(&glog)
@@ -31,9 +30,6 @@ typedef struct {
     time_t last_touch;
     int level;
     unsigned ctrl_stdout:1;
-    unsigned ctrl_timestamp:1;
-    unsigned ctrl_level:1;
-    unsigned ctrl_thread:1;
     unsigned ctrl_locate:1;
 } log;
 
