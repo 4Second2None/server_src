@@ -157,10 +157,10 @@ void connecting_event_cb(struct bufferevent *bev, short what, void *arg)
         bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb2, c);
         bufferevent_enable(bev, EV_READ);
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 40; i++)
         {
             A a;
-            a.set_info("abc");
+            a.set_info("abc88888888888888888881222222222222223131321 hhhhhhhhhhhhhhfasdf fsfsf");
             connector_write<A>(cr, 1, &a);
         }
     }
