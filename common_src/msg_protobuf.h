@@ -1,6 +1,7 @@
 #ifndef MSG_PROTOBUF_H_INCLUDED
 #define MSG_PROTOBUF_H_INCLUDED
 
+#include "log.h"
 #include "msg.h"
 
 #include <google/protobuf/stubs/common.h>
@@ -23,8 +24,10 @@ int create_msg(uint16_t cmd, uint64_t uid, S *s, unsigned char **msg, size_t *sz
     size_t body_sz = s->ByteSize();
     *sz = MSG_HEAD_SIZE + sizeof(uint64_t) + body_sz;
     *msg = (unsigned char *)malloc(*sz);
-    if (NULL == *msg)
+    if (NULL == *msg) {
+        merror("msg alloc failed!");
         return -1;
+    }
 
     unsigned short *cur = (unsigned short *)*msg;
     *cur++ = htons((unsigned short)MAGIC_NUMBER);
@@ -45,8 +48,10 @@ int create_msg(uint16_t cmd, S *s, unsigned char **msg, size_t *sz)
     size_t body_sz = s->ByteSize();
     *sz = MSG_HEAD_SIZE + body_sz;
     *msg = (unsigned char *)malloc(*sz);
-    if (NULL == *msg)
+    if (NULL == *msg) {
+        merror("msg alloc failed!");
         return -1;
+    }
 
     unsigned short *cur = (unsigned short *)*msg;
     *cur++ = htons((unsigned short)MAGIC_NUMBER);
@@ -65,7 +70,7 @@ template<typename S>
 int msg_body(unsigned char *src, size_t src_sz, uint64_t *uid, S *s)
 {
     if (MSG_HEAD_SIZE > src_sz) {
-        fprintf(stderr, "msg less than head size!\n");
+        merror("msg less than head size!");
         return -1;
     }
 
@@ -74,14 +79,14 @@ int msg_body(unsigned char *src, size_t src_sz, uint64_t *uid, S *s)
     cur++;
     unsigned short len = ntohs(*cur);
     if (MSG_HEAD_SIZE + len != src_sz) {
-        fprintf(stderr, "msg length err!\n");
+        merror("msg length error!");
         return -1;
     }
 
     cur += 2;
     unsigned short flag = ntohs(*cur);
     if (0 == flag & FLAG_HAS_UID) {
-        fprintf(stderr, "msg no uid!\n");
+        merror(stderr, "msg no uid!");
         return -1;
     }
 
@@ -95,7 +100,7 @@ template<typename S>
 int msg_body(unsigned char *src, size_t src_sz, S *s)
 {
     if (MSG_HEAD_SIZE > src_sz) {
-        fprintf(stderr, "msg less than head size!\n");
+        merror("msg less than head size!");
         return -1;
     }
     unsigned short *cur = (unsigned short *)src;
@@ -103,7 +108,7 @@ int msg_body(unsigned char *src, size_t src_sz, S *s)
     cur++;
     unsigned short len = ntohs(*cur);
     if (MSG_HEAD_SIZE + len != src_sz) {
-        fprintf(stderr, "msg length err!\n");
+        merror("msg length error!");
         return -1;
     }
 

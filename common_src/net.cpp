@@ -116,7 +116,7 @@ void conn_init() {
     freetotal = 200;
     freecurr = 0;
     if (NULL == (freeconns = (conn **)calloc(freetotal, sizeof(conn *)))) {
-        mfatal("connection freelist alloc failed!");
+        merror("connection freelist alloc failed!");
     }
     return;
 }
@@ -140,7 +140,7 @@ conn *conn_new()
     conn *c = conn_from_freelist();
     if (NULL == c) {
         if (!(c = (conn *)calloc(1, sizeof(conn)))) {
-            fprintf(stderr, "connection alloc failed!\n");
+            merror("connection alloc failed!");
             return NULL;
         }
     }
@@ -194,7 +194,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
     char buf[1];
 
     if (read(fd, buf, 1) != 1)
-        fprintf(stderr, "can't read from libevent pipe!\n");
+        merror("can't read from libevent pipe!");
 
     switch(buf[0]) {
         case 'c':
@@ -208,7 +208,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
                         struct bufferevent* bev = bufferevent_socket_new(me->base, item->fd,
                                 BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
                         if (NULL == bev) {
-                            fprintf(stderr, "create bufferevent failed!\n");
+                            merror("create bufferevent failed!");
                         } else {
                             evbuffer *input = bufferevent_get_input(bev);
                             evbuffer_enable_locking(input, NULL);
@@ -217,7 +217,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
                             c->data = item->data;
                             c->bev = bev;
                             c->thread = me;
-                            printf("new connection established!\n");
+                            mdebug("new connection established!");
                         }
                     }
                 }
@@ -236,7 +236,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
                         struct bufferevent *bev = bufferevent_socket_new(me->base, -1,
                                 BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
                         if (NULL == bev) {
-                            fprintf(stderr, "create bufferevent failed!\n");
+                            merror("create bufferevent failed!");
                         } else {
                             evbuffer *input = bufferevent_get_input(bev);
                             evbuffer_enable_locking(input, NULL);
@@ -246,7 +246,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
                             c->thread = me;
                             cr->c = c;
                             cr->state = STATE_NOT_CONNECTED;
-                            printf("connecting!\n");
+                            minfo("connecting!");
                             bufferevent_socket_connect(c->bev, cr->sa, cr->socklen);
                         }
                     }
@@ -260,7 +260,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
 static void setup_thread(LIBEVENT_THREAD *me) {
     me->base = event_base_new();
     if (NULL == me->base) {
-        fprintf(stderr, "allocate event base failed!\n");
+        mfatal("allocate event base failed!");
         exit(1);
     }
 
@@ -269,13 +269,13 @@ static void setup_thread(LIBEVENT_THREAD *me) {
     event_base_set(me->base, &me->notify_event);
 
     if (event_add(&me->notify_event, 0) == -1) {
-        fprintf(stderr, "can't monitor libevent notify pipe!\n");
+        mfatal("can't monitor libevent notify pipe!");
         exit(1);
     }
 
     me->new_conn_queue = (struct conn_queue *)malloc(sizeof(struct conn_queue));
     if (NULL == me->new_conn_queue) {
-        fprintf(stderr, "connection queue alloc failed!\n");
+        mfatal("connection queue alloc failed!");
         exit(EXIT_FAILURE);
     }
     cq_init(me->new_conn_queue);
@@ -289,7 +289,7 @@ static void create_worker(void *(*func)(void *), void *arg) {
     pthread_attr_init(&attr);
 
     if ((ret = pthread_create(&thread, &attr, func, arg)) != 0) {
-        fprintf(stderr, "pthread_create failed!\n");
+        mfatal("pthread_create failed!");
         exit(1);
     }
 }
@@ -334,14 +334,14 @@ void thread_init(int nthreads, struct event_base *main_base)
 
     threads = (LIBEVENT_THREAD *)calloc(nthreads, sizeof(LIBEVENT_THREAD));
     if (NULL == threads) {
-        fprintf(stderr, "allocate threads failed!");
+        mfatal("allocate threads failed!");
         exit(1);
     }
 
     for (i = 0; i < nthreads; i++) {
         int fds[2];
         if (pipe(fds)) {
-            fprintf(stderr, "can't create notify pipe!\n");
+            mfatal("can't create notify pipe!");
             exit(1);
         }
 
@@ -385,7 +385,7 @@ void dispatch_conn_new(int fd, char key, void *arg) {
 
     buf[0] = key;
     if (write(thread->notify_send_fd, buf, 1) != 1) {
-        fprintf(stderr, "writing to thread notify pipe failed!\n");
+        merror("writing to thread notify pipe failed!");
     }
 }
 
@@ -396,7 +396,7 @@ listener *listener_new(struct event_base* base, struct sockaddr *sa, int socklen
 {
     listener * l = (listener *)malloc(sizeof(listener));
     if (NULL == l) {
-        fprintf(stderr, "listener alloc failed!\n");
+        mfatal("listener alloc failed!");
         return NULL;
     }
 
@@ -406,7 +406,7 @@ listener *listener_new(struct event_base* base, struct sockaddr *sa, int socklen
             (struct sockaddr *)sa, socklen);
 
     if (NULL == listener) {
-        fprintf(stderr, "create listener failed!\n");
+        mfatal("create evconnlistener failed!");
         free(l);
         return NULL;
     }
@@ -427,13 +427,13 @@ connector *connector_new(struct sockaddr *sa, int socklen, rpc_cb_func rpc)
 {
     connector *cr = (connector *)malloc(sizeof(connector));
     if (NULL == cr) {
-        fprintf(stderr, "connector alloc failed!\n");
+        mfatal("connector alloc failed!");
         return NULL;
     }
 
     cr->sa = (struct sockaddr *)malloc(socklen);
     if (NULL == cr->sa) {
-        fprintf(stderr, "sockaddr alloc failed!\n");
+        mfatal("sockaddr alloc failed!");
         free(cr);
         return NULL;
     }

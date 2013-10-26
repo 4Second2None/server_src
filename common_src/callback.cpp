@@ -11,7 +11,7 @@
 
 void accept_cb(struct evconnlistener *l, evutil_socket_t fd, struct sockaddr *sa, int socklen, void *arg)
 {
-    printf("accept_cb\n");
+    mdebug("accept_cb");
     dispatch_conn_new(fd, 'c', arg);
 }
 
@@ -21,7 +21,7 @@ void conn_read_cb(struct bufferevent *bev, void *arg)
 
     struct evbuffer* input = bufferevent_get_input(bev);
     total_len = evbuffer_get_length(input);
-    printf("read_cb input_buffer_length:%zu\n", total_len);
+    mdebug("read_cb input_buffer_length:%zu", total_len);
 
     while (1)
     {
@@ -36,7 +36,7 @@ void conn_read_cb(struct bufferevent *bev, void *arg)
             buffer = evbuffer_pullup(input, MSG_HEAD_SIZE);
             if (NULL == buffer)
             {
-                fprintf(stderr, "evbuffer_pullup failed!\n");
+                merror("evbuffer_pullup MSG_HEAD_SIZE failed!");
                 goto err;
             }
 
@@ -44,16 +44,15 @@ void conn_read_cb(struct bufferevent *bev, void *arg)
             magic_number = ntohs(*(unsigned short *)cur++);
             if (MAGIC_NUMBER != magic_number)
             {
-                fprintf(stderr, "magic_number error!\n");
+                merror("magic_number error!");
                 goto err;
             }
 
             len = ntohs(*(unsigned short *)cur++);
-            printf("len:%d\n", len);
 
             if (MSG_MAX_SIZE < len)
             {
-                fprintf(stderr, "len:%d > MSG_MAX_SIZE\n", len);
+                merror("len:%d > MSG_MAX_SIZE!", len);
                 goto err;
             }
 
@@ -62,13 +61,12 @@ void conn_read_cb(struct bufferevent *bev, void *arg)
 
             cmd = ntohs(*(unsigned short *)cur++);
             flags = ntohs(*(unsigned short *)cur);
-            printf("MESSAGE cmd:%d len:%d flags:%d\n", cmd, len, flags);
 
             size_t msg_len = MSG_HEAD_SIZE + len;
             buffer = evbuffer_pullup(input, msg_len);
             if (NULL == buffer)
             {
-                fprintf(stderr, "evbuffer_pullup failed again!\n");
+                merror("evbuffer_pullup msg_len failed!");
                 goto err;
             }
 
@@ -82,7 +80,7 @@ void conn_read_cb(struct bufferevent *bev, void *arg)
 
             if (evbuffer_drain(input, msg_len) < 0)
             {
-                fprintf(stderr, "evbuffer_drain failed!\n");
+                merror("evbuffer_drain failed!");
                 goto err;
             }
 
@@ -92,7 +90,7 @@ void conn_read_cb(struct bufferevent *bev, void *arg)
     return;
 
 err:
-    printf("close sockect!\n");
+    mdebug("close sockect!");
     bufferevent_free(bev);
     return;
 conti:
@@ -102,23 +100,21 @@ conti:
 
 void conn_write_cb(struct bufferevent *bev, void *arg)
 {
-    printf("conn_write_cb\n");
     evbuffer *output = bufferevent_get_output(bev);
     size_t sz = evbuffer_get_length(output);
-    printf("output length:%zu\n", sz);
     if (sz > 0)
         bufferevent_enable(bev, EV_WRITE);
 }
 
 void conn_event_cb(struct bufferevent *bev, short what, void *arg)
 {
-    printf("conn_event_cb what:%d\n", what);
+    mdebug("conn_event_cb what:%d", what);
 }
 
 /* used by connector */
 static void conn_event_cb2(struct bufferevent *bev, short what, void *arg)
 {
-    printf("conn_event_cb2 what:%d\n", what);
+    mdebug("conn_event_cb2 what:%d", what);
 }
 
 static void go_connecting(int fd, short what, void *arg)
@@ -136,7 +132,7 @@ static void delay_connecting(conn *c)
         cr->tv.tv_usec = 0;
         cr->timer = evtimer_new(c->thread->base, go_connecting, c);
         if (NULL == cr->timer) {
-            fprintf(stderr, "evtimer_new failed!\n");
+            merror("evtimer_new failed!");
             return;
         }
     }
@@ -148,10 +144,10 @@ void connecting_event_cb(struct bufferevent *bev, short what, void *arg)
     conn *c = (conn *)arg;
 
     if (!(what & BEV_EVENT_CONNECTED)) {
-        fprintf(stderr, "connecting failed!\n");
+        minfo("connecting failed!");
         delay_connecting(c);
     } else {
-        printf("connect success!\n");
+        minfo("connect success!");
         connector *cr = (connector *)c->data;
         cr->state = STATE_CONNECTED;
         bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb2, c);

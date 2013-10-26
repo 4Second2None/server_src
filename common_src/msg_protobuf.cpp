@@ -36,7 +36,7 @@ int create_msg(uint16_t cmd, unsigned char **msg, size_t *sz)
 int message_head(unsigned char *src, size_t src_sz, msg_head *h)
 {
     if (MSG_HEAD_SIZE > src_sz) {
-        fprintf(stderr, "msg less than head size!\n");
+        merror("msg less than head size!");
         return -1;
     }
 

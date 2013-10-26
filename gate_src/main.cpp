@@ -59,8 +59,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    sleep(5);
-
     /* connector to center */
     struct sockaddr_in csa;
     bzero(&csa, sizeof(csa));
@@ -68,7 +66,7 @@ int main(int argc, char **argv)
     csa.sin_addr.s_addr = inet_addr("127.0.0.1");
     csa.sin_port = htons(42000);
 
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 100; i++)
     {
         connector *cg = connector_new((struct sockaddr *)&csa, sizeof(csa), gate_rpc_cb);
         if (NULL == cg) {
