@@ -79,7 +79,6 @@ static int create_file(FILE **f, const char* path, time_t t)
     char timestamp[128];
     strftime(timestamp, 128, "%Y%m%d.log", ptm);
     snprintf(buf, 1024, "%s%s", path, timestamp);
-    buf[1023] = '\0';
 
     if (NULL == (*f = fopen(buf, "at+"))) {
         fprintf(stderr, "fopen path:%s failed!\n", buf);
@@ -112,7 +111,6 @@ static void do_log_item(log *l, LQ_ITEM *item)
     char timestamp[32];
     struct tm *ptm = localtime(&(item->tm));
     strftime(timestamp, 32, "%H:%M:%S ", ptm);
-    timestamp[31] = '\0';
 
     /* level text */
     const char *lv_text = NULL;
@@ -130,20 +128,17 @@ static void do_log_item(log *l, LQ_ITEM *item)
     /* thread */
     char thread_info[32];
     snprintf(thread_info, 32, "[tid=%lu] ", item->thread);
-    thread_info[31] = '\0';
 
     if (l->ctrl_stdout) {
         if (l->ctrl_locate) {
             char buf[1024];
             snprintf(buf, 1024, "%s%s%s%s%s%s%s%s\n",
                     clr, lv_color, timestamp, lv_text, thread_info, item->locate, item->context, clr);
-            buf[1023] = '\0';
             printf(buf);
         } else {
             char buf[1024];
             snprintf(buf, 1024, "%s%s%s%s%s%s%s\n",
                     clr, lv_color, timestamp, lv_text, thread_info, item->context, clr);
-            buf[1023] = '\0';
             printf(buf);
         }
     }
@@ -152,13 +147,11 @@ static void do_log_item(log *l, LQ_ITEM *item)
         char buf[1024];
         snprintf(buf, 1024, "%s%s%s%s%s\n",
                 timestamp, lv_text, thread_info, item->locate, item->context);
-        buf[1023]= '\0';
         fwrite(buf, strlen(buf), 1, l->f);
     } else {
         char buf[1024];
         snprintf(buf, 1024, "%s%s%s%s\n",
                 timestamp, lv_text, thread_info, item->context);
-        buf[1023]= '\0';
         fwrite(buf, strlen(buf), 1, l->f);
     }
 
@@ -200,7 +193,6 @@ int log_open(log *l, const char *path, int lv, int ctrl)
     lq_init(&slq);
 
     strncpy(l->pathname, path, 512);
-    l->pathname[511] = '\0';
     l->f = NULL;
     l->level = lv;
     l->ctrl_stdout = ctrl & LOG_CTRL_STDOUT;
@@ -256,7 +248,6 @@ void log_write(log *l, int lv, const char *file, int line, const char *func, con
             return;
         } else {
             snprintf(item->locate, 256, "[%s:%d:%s] ", file, line, func);
-            item->locate[255] = '\0';
         }
     } else {
         item->locate = NULL;
@@ -271,7 +262,6 @@ void log_write(log *l, int lv, const char *file, int line, const char *func, con
         va_start(va, format);
         vsnprintf(item->context, 1024, format, va);
         va_end(va);
-        item->context[1023] = '\0';
     }
 
     lq_push(&slq, item);
