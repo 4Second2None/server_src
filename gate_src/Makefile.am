@@ -1,0 +1,19 @@
+INCLUDES = \
+		   -I../common_src \
+		   -I../proto_src
+
+AM_CXXFLAGS = -Wall -g
+
+gate_LDADD = -lpthread -levent -lprotobuf
+
+bin_PROGRAMS = gate
+
+gate_SOURCES = \
+			   ../common_src/callback.cpp \
+			   ../common_src/msg_protobuf.cpp \
+			   ../common_src/net.cpp \
+			   ../proto_src/test.pb.cc \
+			   client_rpc_callback.cpp \
+			   gate_rpc_callback.cpp \
+			   main.cpp
+
