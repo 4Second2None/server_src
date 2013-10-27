@@ -29,6 +29,7 @@ typedef struct {
 typedef struct {
     void *data;
     bufferevent *bev;
+    char addrtext[32];
     LIBEVENT_THREAD *thread;
 } conn;
 
@@ -41,7 +42,13 @@ typedef struct {
 typedef struct {
     user_callback cb;
     evconnlistener *l;
+    char addrtext[32];
 } listener;
+
+typedef struct {
+    listener *l;
+    char addrtext[32];
+} listener_info;
 
 typedef struct {
     user_callback cb;
@@ -51,6 +58,7 @@ typedef struct {
     conn *c;
     struct sockaddr *sa;
     int socklen;
+    char addrtext[32];
     /* reconnect timer */
     struct event *timer;
     struct timeval tv;

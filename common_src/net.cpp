@@ -199,6 +199,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
                 item = cq_pop(me->new_conn_queue);
 
                 if (NULL != item) {
+                    listener_info *li = (listener_info *)item->data;
                     conn *c = conn_new();
                     if (NULL == c) {
                     } else {
@@ -207,6 +208,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
                         if (NULL == bev) {
                             merror("create bufferevent failed!");
                         } else {
+                            strncpy(c->addrtext, li->addrtext, 32);
                             evbuffer *input = bufferevent_get_input(bev);
                             evbuffer_enable_locking(input, NULL);
                             bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb, c);
@@ -214,11 +216,12 @@ static void thread_libevent_process(int fd, short which, void *arg)
                             c->data = item->data;
                             c->bev = bev;
                             c->thread = me;
-                            mdebug("new connection established!");
+                            mdebug("new connection %s established!", c->addrtext);
                         }
                     }
+                    free(item->data);
+                    cqi_free(item);
                 }
-                cqi_free(item);
             }
             break;
         case 't':
@@ -243,12 +246,12 @@ static void thread_libevent_process(int fd, short which, void *arg)
                             c->thread = me;
                             cr->c = c;
                             cr->state = STATE_NOT_CONNECTED;
-                            minfo("connecting!");
+                            minfo("connecting %s!", cr->addrtext);
                             bufferevent_socket_connect(c->bev, cr->sa, cr->socklen);
                         }
                     }
+                    cqi_free(item);
                 }
-                cqi_free(item);
             }
             break;
     }
@@ -410,6 +413,9 @@ listener *listener_new(struct event_base* base, struct sockaddr *sa, int socklen
 
     l->cb.rpc = rpc;
     l->l = listener;
+    snprintf(l->addrtext, 32, "%s:%d",
+            inet_ntoa(((struct sockaddr_in *)sa)->sin_addr),
+            ntohs(((struct sockaddr_in *)sa)->sin_port));
     return l;
 }
 
@@ -440,6 +446,9 @@ connector *connector_new(struct sockaddr *sa, int socklen, rpc_cb_func rpc)
     cr->c = NULL;
     memcpy(cr->sa, sa, socklen);
     cr->socklen = socklen;
+    snprintf(cr->addrtext, 32, "%s:%d",
+            inet_ntoa(((struct sockaddr_in *)(cr->sa))->sin_addr),
+            ntohs(((struct sockaddr_in *)(cr->sa))->sin_port));
     cr->timer = NULL;
     dispatch_conn_new(-1, 't', cr);
     return cr;

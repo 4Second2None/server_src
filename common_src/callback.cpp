@@ -11,7 +11,17 @@
 
 void accept_cb(struct evconnlistener *l, evutil_socket_t fd, struct sockaddr *sa, int socklen, void *arg)
 {
-    dispatch_conn_new(fd, 'c', arg);
+    listener_info *li = (listener_info *)malloc(sizeof(listener_info));
+    if (NULL == li) {
+        merror("listener_info alloc failed!");
+        return;
+    }
+    li->l = (listener *)arg;
+    snprintf(li->addrtext, 32, "%s:%d",
+            inet_ntoa(((struct sockaddr_in *)sa)->sin_addr),
+                ntohs(((struct sockaddr_in *)sa)->sin_port));
+
+    dispatch_conn_new(fd, 'c', li);
 }
 
 void conn_read_cb(struct bufferevent *bev, void *arg)
@@ -145,8 +155,8 @@ void connecting_event_cb(struct bufferevent *bev, short what, void *arg)
         minfo("connecting failed!");
         delay_connecting(c);
     } else {
-        minfo("connect success!");
         connector *cr = (connector *)c->data;
+        minfo("connect %s success!", cr->addrtext);
         cr->state = STATE_CONNECTED;
         bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb2, c);
         bufferevent_enable(bev, EV_READ);
