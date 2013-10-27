@@ -90,7 +90,7 @@ static int create_file(FILE **f, const char* path, time_t t)
 
 static pthread_t thread;
 
-static void do_log_item(log *l, LQ_ITEM *item)
+static void exec_log_item(log *l, LQ_ITEM *item)
 {
     const char *clr = "\033[0m";
 
@@ -176,14 +176,14 @@ static void *log_thread_func(void *arg)
             else
                 break;
         } else {
-            do_log_item(l, item);
+            exec_log_item(l, item);
         }
     }
 
     return NULL;
 }
 
-int log_open(log *l, const char *path, int lv, int ctrl)
+int log_open(log *l, const char *path, int lv, unsigned int ctrl)
 {
     if (strlen(path) >= 512) {
         fprintf(stderr, "path too long!\n");
@@ -195,8 +195,8 @@ int log_open(log *l, const char *path, int lv, int ctrl)
     strncpy(l->pathname, path, 512);
     l->f = NULL;
     l->level = lv;
-    l->ctrl_stdout = ctrl & LOG_CTRL_STDOUT;
-    l->ctrl_locate = ctrl & LOG_CTRL_LOCATE;
+    l->ctrl_stdout = ctrl & LOG_CTRL_STDOUT ? 1 : 0;
+    l->ctrl_locate = ctrl & LOG_CTRL_LOCATE ? 1 : 0;
     time_t t = time(NULL);
     l->last_touch = t;
     if (0 != create_file(&l->f, l->pathname, t)) {

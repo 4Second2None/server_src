@@ -10,9 +10,8 @@
 #define LOG_LEVEL_INFO  2
 #define LOG_LEVEL_DEBUG 1
 
-#define LOG_CTRL_STDOUT 1
-#define LOG_CTRL_THREAD 2
-#define LOG_CTRL_LOCATE 4
+#define LOG_CTRL_STDOUT (1 << 0)
+#define LOG_CTRL_LOCATE (1 << 1)
 
 #define LOG_OPEN(path, lv, ctrl) log_open(&glog, path, lv, ctrl)
 #define LOG_CLOSE() log_close(&glog)
@@ -33,7 +32,7 @@ typedef struct {
     unsigned ctrl_locate:1;
 } log;
 
-int log_open(log *l, const char *path, int lv, int ctrl);
+int log_open(log *l, const char *path, int lv, unsigned int ctrl);
 void log_close(log *l);
 void log_write(log *l, int lv, const char *file, int line, const char *func, const char *format, ...);
 
