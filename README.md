@@ -1,4 +1,12 @@
 server_src
+
+mmorpg
+
+dependencies
 ========
 
-mmorpg, using libevent, protobuf
+libevent
+
+protobuf
+
+zdb

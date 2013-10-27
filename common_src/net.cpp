@@ -212,7 +212,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
                             evbuffer_enable_locking(input, NULL);
                             bufferevent_setcb(bev, conn_read_cb, conn_write_cb, conn_event_cb, c);
                             bufferevent_enable(bev, EV_READ);
-                            c->data = item->data;
+                            c->data = li->l;
                             c->bev = bev;
                             c->thread = me;
                             mdebug("new connection %s established!", c->addrtext);
