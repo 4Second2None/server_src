@@ -1,3 +1,4 @@
+#include "log.h"
 #include "net.h"
 #include "cmd.h"
 
@@ -14,6 +15,12 @@ void login_rpc_cb(conn *, unsigned char *, size_t);
 
 int main(int argc, char **argv)
 {
+    /* open log */
+    if (0 != LOG_OPEN("./center", LOG_LEVEL_DEBUG, -1)) {
+        fprintf(stderr, "open center log failed!\n");
+        return 1;
+    }
+
     if (0 != check_cmd()) {
         return 1;
     }
@@ -23,7 +30,7 @@ int main(int argc, char **argv)
 
     struct event_base *main_base = event_base_new();
     if (NULL == main_base) {
-        fprintf(stderr, "main_base = event_base_new() failed!\n");
+        mfatal("main_base = event_base_new() failed!");
         return 1;
     }
 
@@ -36,7 +43,7 @@ int main(int argc, char **argv)
     /* signal */
     signal_event = evsignal_new(main_base, SIGINT, signal_cb, (void *)main_base);
     if (NULL == signal_event || 0 != event_add(signal_event, NULL)) {
-        fprintf(stderr, "create/add a signal event failed!\n");
+        mfatal("create/add a signal event failed!");
         return 1;
     }
 
@@ -49,7 +56,7 @@ int main(int argc, char **argv)
 
     listener *lg = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), gate_rpc_cb);
     if (NULL == lg) {
-        fprintf(stderr, "create client listener failed!\n");
+        mfatal("create client listener failed!");
         return 1;
     }
 
@@ -62,7 +69,7 @@ int main(int argc, char **argv)
 
     connector *cl = connector_new((struct sockaddr *)&csa, sizeof(csa), login_rpc_cb);
     if (NULL == cl) {
-        fprintf(stderr, "create center connector failed!\n");
+        mfatal("create center connector failed!");
         return 1;
     }
 
@@ -75,12 +82,15 @@ int main(int argc, char **argv)
     /* shutdown protobuf */
     google::protobuf::ShutdownProtobufLibrary();
 
+    /* close log */
+    LOG_CLOSE();
+
     return 0;
 }
 
 void signal_cb(evutil_socket_t fd, short what, void *arg)
 {
-    printf("signal_cb\n");
+    mdebug("signal_cb");
     struct event_base *base = (struct event_base *)arg;
     event_base_loopbreak(base);
 }
