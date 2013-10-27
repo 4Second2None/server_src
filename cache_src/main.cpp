@@ -10,15 +10,16 @@
 static void signal_cb(evutil_socket_t, short, void *);
 
 /* callback */
-void client_cb(conn *, unsigned char *, size_t);
-void center_cb(conn *, unsigned char *, size_t);
+void gate_cb(conn *, unsigned char *, size_t);
+void game_cb(conn *, unsigned char *, size_t);
 
 #define WORKER_NUM 8
 
 int main(int argc, char **argv)
 {
     /* open log */
-    if (0 != LOG_OPEN("./login", LOG_LEVEL_DEBUG, -1)) {
+    if (0 != LOG_OPEN("./center", LOG_LEVEL_DEBUG, -1)) {
+        fprintf(stderr, "open center log failed!\n");
         return 1;
     }
 
@@ -37,7 +38,7 @@ int main(int argc, char **argv)
 
     conn_init();
 
-    /* worker thread */
+    /* thread */
     pthread_t worker[WORKER_NUM];
     thread_init(main_base, WORKER_NUM, worker);
 
@@ -49,38 +50,35 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* listener for client */
+    /* listener for gate */
     struct sockaddr_in sa;
     bzero(&sa, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    sa.sin_port = htons(41000);
+    sa.sin_port = htons(45000);
 
-    listener *lc = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), client_cb);
-    if (NULL == lc) {
+    listener *lg = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), gate_cb);
+    if (NULL == lg) {
         mfatal("create client listener failed!");
         return 1;
     }
 
-    /* listener for center */
+    /* listener for game */
     bzero(&sa, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    sa.sin_port = htons(41001);
+    sa.sin_port = htons(45001);
 
-    listener *le = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), center_cb);
-    if (NULL == le) {
-        mfatal("create center listener failed!");
+    listener *lm = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), gate_cb);
+    if (NULL == lm) {
+        mfatal("create client listener failed!");
         return 1;
     }
-
     event_base_dispatch(main_base);
 
-    for (int i = 0; i < WORKER_NUM; i++)
-        pthread_join(worker[i], NULL);
-
-    listener_free(lc);
-    listener_free(le);
+    listener_free(lm);
+    listener_free(lg);
+    event_free(signal_event);
     event_base_free(main_base);
 
     /* shutdown protobuf */

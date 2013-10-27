@@ -13,6 +13,8 @@ static void signal_cb(evutil_socket_t, short, void *);
 void client_cb(conn *, unsigned char *, size_t);
 void gate_cb(conn *, unsigned char *, size_t);
 
+#define WORKER_NUM 8
+
 int main(int argc, char **argv)
 {
     /* open log */
@@ -36,8 +38,9 @@ int main(int argc, char **argv)
 
     conn_init();
 
-    /* thread */
-    thread_init(8, main_base);
+    /* worker thread */
+    pthread_t worker[WORKER_NUM];
+    thread_init(main_base, WORKER_NUM, worker);
     struct event *signal_event;
 
     /* signal */
@@ -75,8 +78,12 @@ int main(int argc, char **argv)
 
     event_base_dispatch(main_base);
 
+    for (int i = 0; i < WORKER_NUM; i++)
+        pthread_join(worker[i], NULL);
+
     //connector_free(cg);
     listener_free(lc);
+    event_free(signal_event);
     event_base_free(main_base);
 
     /* shutdown protobuf */
@@ -93,4 +100,5 @@ void signal_cb(evutil_socket_t fd, short what, void *arg)
     mdebug("signal_cb");
     struct event_base *base = (struct event_base *)arg;
     event_base_loopbreak(base);
+    dispatch_conn_new(-1, 'k', NULL);
 }

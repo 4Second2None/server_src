@@ -10,7 +10,7 @@
 static void signal_cb(evutil_socket_t, short, void *);
 
 /* callback */
-void client_cb(conn *, unsigned char *, size_t);
+void gate_cb(conn *, unsigned char *, size_t);
 void center_cb(conn *, unsigned char *, size_t);
 
 #define WORKER_NUM 8
@@ -18,7 +18,8 @@ void center_cb(conn *, unsigned char *, size_t);
 int main(int argc, char **argv)
 {
     /* open log */
-    if (0 != LOG_OPEN("./login", LOG_LEVEL_DEBUG, -1)) {
+    if (0 != LOG_OPEN("./center", LOG_LEVEL_DEBUG, -1)) {
+        fprintf(stderr, "open center log failed!\n");
         return 1;
     }
 
@@ -37,7 +38,7 @@ int main(int argc, char **argv)
 
     conn_init();
 
-    /* worker thread */
+    /* thread */
     pthread_t worker[WORKER_NUM];
     thread_init(main_base, WORKER_NUM, worker);
 
@@ -49,28 +50,29 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* listener for client */
+    /* listener for gate */
     struct sockaddr_in sa;
     bzero(&sa, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    sa.sin_port = htons(41000);
+    sa.sin_port = htons(44000);
 
-    listener *lc = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), client_cb);
-    if (NULL == lc) {
+    listener *lg = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), gate_cb);
+    if (NULL == lg) {
         mfatal("create client listener failed!");
         return 1;
     }
 
-    /* listener for center */
-    bzero(&sa, sizeof(sa));
-    sa.sin_family = AF_INET;
-    sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    sa.sin_port = htons(41001);
+    /* connector to center */
+    struct sockaddr_in csa;
+    bzero(&csa, sizeof(csa));
+    csa.sin_family = AF_INET;
+    csa.sin_addr.s_addr = inet_addr("127.0.0.1");
+    csa.sin_port = htons(43001);
 
-    listener *le = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), center_cb);
-    if (NULL == le) {
-        mfatal("create center listener failed!");
+    connector *ce = connector_new((struct sockaddr *)&csa, sizeof(csa), center_cb);
+    if (NULL == ce) {
+        mfatal("create center connector failed!");
         return 1;
     }
 
@@ -79,8 +81,9 @@ int main(int argc, char **argv)
     for (int i = 0; i < WORKER_NUM; i++)
         pthread_join(worker[i], NULL);
 
-    listener_free(lc);
-    listener_free(le);
+    connector_free(ce);
+    listener_free(lg);
+    event_free(signal_event);
     event_base_free(main_base);
 
     /* shutdown protobuf */

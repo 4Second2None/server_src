@@ -194,8 +194,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
         merror("can't read from libevent pipe!");
 
     switch(buf[0]) {
-        case 'c':
-            {
+        case 'c': {
                 item = cq_pop(me->new_conn_queue);
 
                 if (NULL != item) {
@@ -224,8 +223,7 @@ static void thread_libevent_process(int fd, short which, void *arg)
                 }
             }
             break;
-        case 't':
-            {
+        case 't': {
                 item = cq_pop(me->new_conn_queue);
 
                 if (NULL != item) {
@@ -251,7 +249,11 @@ static void thread_libevent_process(int fd, short which, void *arg)
                         }
                     }
                     cqi_free(item);
-                }
+                } 
+            }
+            break;
+        case 'k': {
+                event_base_loopbreak(me->base);
             }
             break;
     }
@@ -281,14 +283,13 @@ static void setup_thread(LIBEVENT_THREAD *me) {
     cq_init(me->new_conn_queue);
 }
 
-static void create_worker(void *(*func)(void *), void *arg) {
-    pthread_t thread;
+static void create_worker(void *(*func)(void *), void *arg, pthread_t *th) {
     pthread_attr_t attr;
     int ret;
 
     pthread_attr_init(&attr);
 
-    if ((ret = pthread_create(&thread, &attr, func, arg)) != 0) {
+    if ((ret = pthread_create(th, &attr, func, arg)) != 0) {
         mfatal("pthread_create failed!");
         exit(1);
     }
@@ -319,7 +320,7 @@ static void *worker_libevent(void *arg) {
     return NULL;
 }
 
-void thread_init(int nthreads, struct event_base *main_base)
+void thread_init(struct event_base *main_base, int nthreads, pthread_t *th)
 {
     int i;
 
@@ -352,7 +353,7 @@ void thread_init(int nthreads, struct event_base *main_base)
     }
 
     for (i = 0; i < nthreads; i++) {
-        create_worker(worker_libevent, &threads[i]);
+        create_worker(worker_libevent, &threads[i], th + i);
     }
 
     pthread_mutex_lock(&init_lock);
@@ -365,27 +366,40 @@ void thread_init(int nthreads, struct event_base *main_base)
 static int last_thread = -1;
 
 void dispatch_conn_new(int fd, char key, void *arg) {
-    CQ_ITEM *item = cqi_new();
-    if (NULL == item) {
-        merror("cqi_new failed!");
-        return;
-    }
 
-    char buf[1];
-    int tid = (last_thread + 1) % num_threads;
+    if ('k' == key) {
 
-    LIBEVENT_THREAD *thread = threads + tid;
+        for (int i = 0; i < num_threads; i++) {
+            LIBEVENT_THREAD *thread = threads + i;
+            char buf[1];
+            buf[0] = key;
+            if (write(thread->notify_send_fd, buf, 1) != 1) {
+                merror("writing to thread notify pipe failed!");
+            }
+        }
+    } else {
+        CQ_ITEM *item = cqi_new();
+        if (NULL == item) {
+            merror("cqi_new failed!");
+            return;
+        }
 
-    last_thread = tid;
+        char buf[1];
+        int tid = (last_thread + 1) % num_threads;
 
-    item->fd = fd;
-    item->data = arg;
-    
-    cq_push(thread->new_conn_queue, item);
+        LIBEVENT_THREAD *thread = threads + tid;
 
-    buf[0] = key;
-    if (write(thread->notify_send_fd, buf, 1) != 1) {
-        merror("writing to thread notify pipe failed!");
+        last_thread = tid;
+
+        item->fd = fd;
+        item->data = arg;
+
+        cq_push(thread->new_conn_queue, item);
+
+        buf[0] = key;
+        if (write(thread->notify_send_fd, buf, 1) != 1) {
+            merror("writing to thread notify pipe failed!");
+        }
     }
 }
 
@@ -421,7 +435,9 @@ listener *listener_new(struct event_base* base, struct sockaddr *sa, int socklen
 
 void listener_free(listener *l)
 {
-
+    if (l->l)
+        evconnlistener_free(l->l);
+    free(l);
 }
 
 /******************************* connector ********************************/

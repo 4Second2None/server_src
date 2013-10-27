@@ -65,7 +65,7 @@ typedef struct {
 } connector;
 
 /* thread clone */
-void thread_init(int nthreads, struct event_base *base);
+void thread_init(struct event_base *base, int nthreads, pthread_t *th);
 
 /* connection */
 void conn_init();

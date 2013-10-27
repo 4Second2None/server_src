@@ -14,6 +14,8 @@ void game_cb(conn *, unsigned char *, size_t);
 void gate_cb(conn *, unsigned char *, size_t);
 void login_cb(conn *, unsigned char *, size_t);
 
+#define WORKER_NUM 8
+
 int main(int argc, char **argv)
 {
     /* open log */
@@ -38,10 +40,11 @@ int main(int argc, char **argv)
     conn_init();
 
     /* thread */
-    thread_init(8, main_base);
-    struct event *signal_event;
+    pthread_t worker[WORKER_NUM];
+    thread_init(main_base, WORKER_NUM, worker);
 
     /* signal */
+    struct event *signal_event;
     signal_event = evsignal_new(main_base, SIGINT, signal_cb, (void *)main_base);
     if (NULL == signal_event || 0 != event_add(signal_event, NULL)) {
         mfatal("create/add a signal event failed!");
@@ -88,8 +91,12 @@ int main(int argc, char **argv)
 
     event_base_dispatch(main_base);
 
+    for (int i = 0; i < WORKER_NUM; i++)
+        pthread_join(worker[i], NULL);
+
     connector_free(cl);
     listener_free(lg);
+    event_free(signal_event);
     event_base_free(main_base);
 
     /* shutdown protobuf */
@@ -106,4 +113,5 @@ void signal_cb(evutil_socket_t fd, short what, void *arg)
     mdebug("signal_cb");
     struct event_base *base = (struct event_base *)arg;
     event_base_loopbreak(base);
+    dispatch_conn_new(-1, 'k', NULL);
 }
