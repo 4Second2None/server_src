@@ -95,6 +95,7 @@ int main(int argc, char **argv)
         pthread_join(worker[i], NULL);
 
     connector_free(cl);
+    listener_free(lm);
     listener_free(lg);
     event_free(signal_event);
     event_base_free(main_base);

@@ -81,6 +81,7 @@ int main(int argc, char **argv)
 
     listener_free(lc);
     listener_free(le);
+    event_free(signal_event);
     event_base_free(main_base);
 
     /* shutdown protobuf */
