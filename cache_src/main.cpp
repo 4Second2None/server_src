@@ -76,6 +76,9 @@ int main(int argc, char **argv)
     }
     event_base_dispatch(main_base);
 
+    for (int i = 0; i < WORKER_NUM; i++)
+        pthread_join(worker[i], NULL);
+
     listener_free(lm);
     listener_free(lg);
     event_free(signal_event);
