@@ -17,6 +17,7 @@ int main(int argc, char **argv)
 {
     /* open log */
     if (0 != LOG_OPEN("./gate", LOG_LEVEL_DEBUG, -1)) {
+        fprintf(stderr, "open gate log failed!\n");
         return 1;
     }
 
@@ -64,15 +65,12 @@ int main(int argc, char **argv)
     bzero(&csa, sizeof(csa));
     csa.sin_family = AF_INET;
     csa.sin_addr.s_addr = inet_addr("127.0.0.1");
-    csa.sin_port = htons(42000);
+    csa.sin_port = htons(43000);
 
-    for (int i = 0; i < 100; i++)
-    {
-        connector *cg = connector_new((struct sockaddr *)&csa, sizeof(csa), gate_rpc_cb);
-        if (NULL == cg) {
-            mfatal("create center connector failed!");
-            return 1;
-        }
+    connector *cg = connector_new((struct sockaddr *)&csa, sizeof(csa), gate_rpc_cb);
+    if (NULL == cg) {
+        mfatal("create center connector failed!");
+        return 1;
     }
 
     event_base_dispatch(main_base);
@@ -83,6 +81,9 @@ int main(int argc, char **argv)
 
     /* shutdown protobuf */
     google::protobuf::ShutdownProtobufLibrary();
+
+    /* close log */
+    LOG_CLOSE();
 
     return 0;
 }

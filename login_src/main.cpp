@@ -59,7 +59,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* listener for client */
+    /* listener for center */
     bzero(&sa, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = htonl(INADDR_ANY);

@@ -38,7 +38,10 @@ bin_PROGRAMS = center$(EXEEXT)
 subdir = center_src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -49,8 +52,9 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_center_OBJECTS = callback.$(OBJEXT) log.$(OBJEXT) \
 	msg_protobuf.$(OBJEXT) net.$(OBJEXT) cmd_util.$(OBJEXT) \
-	test.pb.$(OBJEXT) gate_rpc_callback.$(OBJEXT) \
-	login_rpc_callback.$(OBJEXT) main.$(OBJEXT)
+	test.pb.$(OBJEXT) game_rpc_callback.$(OBJEXT) \
+	gate_rpc_callback.$(OBJEXT) login_rpc_callback.$(OBJEXT) \
+	main.$(OBJEXT)
 center_OBJECTS = $(am_center_OBJECTS)
 center_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -199,6 +203,7 @@ center_SOURCES = \
 			   ../common_src/net.cpp \
 			   ../proto_src/cmd_util.cpp \
 			   ../proto_src/test.pb.cc \
+			   game_rpc_callback.cpp \
 			   gate_rpc_callback.cpp \
 			   login_rpc_callback.cpp \
 			   main.cpp
@@ -292,6 +297,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/callback.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/game_rpc_callback.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gate_rpc_callback.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/log.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/login_rpc_callback.Po@am__quote@

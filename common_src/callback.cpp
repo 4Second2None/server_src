@@ -11,7 +11,6 @@
 
 void accept_cb(struct evconnlistener *l, evutil_socket_t fd, struct sockaddr *sa, int socklen, void *arg)
 {
-    mdebug("accept_cb");
     dispatch_conn_new(fd, 'c', arg);
 }
 
@@ -21,7 +20,6 @@ void conn_read_cb(struct bufferevent *bev, void *arg)
 
     struct evbuffer* input = bufferevent_get_input(bev);
     total_len = evbuffer_get_length(input);
-    mdebug("read_cb input_buffer_length:%zu", total_len);
 
     while (1)
     {
