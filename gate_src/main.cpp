@@ -9,9 +9,9 @@
 
 static void signal_cb(evutil_socket_t, short, void *);
 
-/* rpc callback */
-void client_rpc_cb(conn *, unsigned char *, size_t);
-void gate_rpc_cb(conn *, unsigned char *, size_t);
+/* callback */
+void client_cb(conn *, unsigned char *, size_t);
+void gate_cb(conn *, unsigned char *, size_t);
 
 int main(int argc, char **argv)
 {
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
     sa.sin_port = htons(42000);
 
-    listener *lc = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), client_rpc_cb);
+    listener *lc = listener_new(main_base, (struct sockaddr *)&sa, sizeof(sa), client_cb);
     if (NULL == lc) {
         mfatal("create client listener failed!");
         return 1;
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     csa.sin_addr.s_addr = inet_addr("127.0.0.1");
     csa.sin_port = htons(43000);
 
-    connector *cg = connector_new((struct sockaddr *)&csa, sizeof(csa), gate_rpc_cb);
+    connector *cg = connector_new((struct sockaddr *)&csa, sizeof(csa), gate_cb);
     if (NULL == cg) {
         mfatal("create center connector failed!");
         return 1;

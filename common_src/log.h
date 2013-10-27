@@ -10,9 +10,9 @@
 #define LOG_LEVEL_INFO  2
 #define LOG_LEVEL_DEBUG 1
 
-#define LOG_CTRL_STDOUT    1
-#define LOG_CTRL_THREAD    2
-#define LOG_CTRL_LOCATE    4
+#define LOG_CTRL_STDOUT 1
+#define LOG_CTRL_THREAD 2
+#define LOG_CTRL_LOCATE 4
 
 #define LOG_OPEN(path, lv, ctrl) log_open(&glog, path, lv, ctrl)
 #define LOG_CLOSE() log_close(&glog)
