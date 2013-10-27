@@ -13,6 +13,6 @@ struct msg_head
 };
 
 #define MSG_HEAD_SIZE sizeof(unsigned short) * 4
-#define MSG_MAX_SIZE 2 * 1024 * 1024
+#define MSG_MAX_SIZE  60 * 1024
 
 #endif /* MSG_H_INCLUDED */
