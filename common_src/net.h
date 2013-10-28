@@ -28,6 +28,7 @@ typedef struct {
 
 typedef struct {
     void *data;
+    void *user;
     bufferevent *bev;
     char addrtext[32];
     LIBEVENT_THREAD *thread;

@@ -34,8 +34,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = login$(EXEEXT)
-subdir = login_src
+bin_PROGRAMS = cache$(EXEEXT)
+subdir = client_src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -47,11 +47,11 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_login_OBJECTS = cb.$(OBJEXT) log.$(OBJEXT) msg_protobuf.$(OBJEXT) \
+am_cache_OBJECTS = cb.$(OBJEXT) log.$(OBJEXT) msg_protobuf.$(OBJEXT) \
 	net.$(OBJEXT) cmd_util.$(OBJEXT) test.pb.$(OBJEXT) \
-	client_cb.$(OBJEXT) center_cb.$(OBJEXT) main.$(OBJEXT)
-login_OBJECTS = $(am_login_OBJECTS)
-login_DEPENDENCIES =
+	server_cb.$(OBJEXT) main.$(OBJEXT)
+cache_OBJECTS = $(am_cache_OBJECTS)
+cache_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -65,8 +65,8 @@ CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(login_SOURCES)
-DIST_SOURCES = $(login_SOURCES)
+SOURCES = $(cache_SOURCES)
+DIST_SOURCES = $(cache_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -190,16 +190,15 @@ INCLUDES = \
 		   -I../proto_src
 
 AM_CXXFLAGS = 
-login_LDADD = -lpthread -levent -lprotobuf
-login_SOURCES = \
+cache_LDADD = -lpthread -levent -lprotobuf
+cache_SOURCES = \
 			   ../common_src/cb.cpp \
 			   ../common_src/log.cpp \
 			   ../common_src/msg_protobuf.cpp \
 			   ../common_src/net.cpp \
 			   ../proto_src/cmd_util.cpp \
 			   ../proto_src/test.pb.cc \
-			   client_cb.cpp \
-			   center_cb.cpp \
+			   server_cb.cpp \
 			   main.cpp
 
 all: all-am
@@ -215,9 +214,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu login_src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu client_src/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu login_src/Makefile
+	  $(AUTOMAKE) --gnu client_src/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -279,9 +278,9 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-login$(EXEEXT): $(login_OBJECTS) $(login_DEPENDENCIES) 
-	@rm -f login$(EXEEXT)
-	$(CXXLINK) $(login_OBJECTS) $(login_LDADD) $(LIBS)
+cache$(EXEEXT): $(cache_OBJECTS) $(cache_DEPENDENCIES) 
+	@rm -f cache$(EXEEXT)
+	$(CXXLINK) $(cache_OBJECTS) $(cache_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -290,13 +289,12 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cb.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/center_cb.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/client_cb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/log.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msg_protobuf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/server_cb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test.pb.Po@am__quote@
 
 .cc.o:

@@ -224,6 +224,21 @@ void log_close(log *l)
     pthread_join(thread, NULL);
 }
 
+static int is_same_day(time_t t1, time_t t2)
+{
+    struct tm *ptm = localtime(&t1);
+    int year1 = ptm->tm_year;
+    int mon1 = ptm->tm_mon;
+    int day1 = ptm->tm_mday;
+    ptm = localtime(&t2);
+    int year2 = ptm->tm_year;
+    int mon2 = ptm->tm_mon;
+    int day2 = ptm->tm_mday;
+    if (year1 == year2 && mon1 == mon2 && day1 == day2)
+        return 1;
+    return 0;
+}
+
 void log_write(log *l, int lv, const char *file, int line, const char *func, const char *format, ...)
 {
     if (0 == l->run)
@@ -237,7 +252,7 @@ void log_write(log *l, int lv, const char *file, int line, const char *func, con
         fprintf(stderr, "LQ_ITEM alloc failed!\n");
         return;
     }
-    
+
     item->level = lv;
     item->tm = time(NULL);
     if (l->ctrl_locate) {

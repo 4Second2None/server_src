@@ -40,6 +40,7 @@ AC_CONFIG_FILES([
                  Makefile
                  cache_src/Makefile
                  center_src/Makefile
+                 client_src/Makefile
                  game_src/Makefile
                  gate_src/Makefile
                  login_src/Makefile

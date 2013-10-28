@@ -1,17 +1,24 @@
 #include "log.h"
 #include "net.h"
 #include "cmd.h"
+#include "fwd.h"
 
 #include <strings.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <signal.h>
 
+connector *center = NULL;
+connector *game = NULL;
+connector *cache = NULL;
+
 static void signal_cb(evutil_socket_t, short, void *);
 
 /* callback */
 void client_cb(conn *, unsigned char *, size_t);
-void gate_cb(conn *, unsigned char *, size_t);
+void center_cb(conn *, unsigned char *, size_t);
+void game_cb(conn *, unsigned char *, size_t);
+void cache_cb(conn *, unsigned char *, size_t);
 
 #define WORKER_NUM 8
 
@@ -70,9 +77,36 @@ int main(int argc, char **argv)
     csa.sin_addr.s_addr = inet_addr("127.0.0.1");
     csa.sin_port = htons(43000);
 
-    connector *cg = connector_new((struct sockaddr *)&csa, sizeof(csa), gate_cb);
-    if (NULL == cg) {
+    connector *ce = connector_new((struct sockaddr *)&csa, sizeof(csa), center_cb);
+    center = ce;
+    if (NULL == ce) {
         mfatal("create center connector failed!");
+        return 1;
+    }
+
+    /* connector to game */
+    bzero(&csa, sizeof(csa));
+    csa.sin_family = AF_INET;
+    csa.sin_addr.s_addr = inet_addr("127.0.0.1");
+    csa.sin_port = htons(44000);
+
+    connector *cm = connector_new((struct sockaddr *)&csa, sizeof(csa), game_cb);
+    game = cm;
+    if (NULL == cm) {
+        mfatal("create game connector failed!");
+        return 1;
+    }
+
+    /* connector to cache */
+    bzero(&csa, sizeof(csa));
+    csa.sin_family = AF_INET;
+    csa.sin_addr.s_addr = inet_addr("127.0.0.1");
+    csa.sin_port = htons(45000);
+
+    connector *ca = connector_new((struct sockaddr *)&csa, sizeof(csa), cache_cb);
+    cache = ca;
+    if (NULL == ca) {
+        mfatal("create cache connector failed!");
         return 1;
     }
 
@@ -81,7 +115,9 @@ int main(int argc, char **argv)
     for (int i = 0; i < WORKER_NUM; i++)
         pthread_join(worker[i], NULL);
 
-    //connector_free(cg);
+    connector_free(ca);
+    connector_free(cm);
+    connector_free(ce);
     listener_free(lc);
     event_free(signal_event);
     event_base_free(main_base);
