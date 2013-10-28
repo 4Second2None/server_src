@@ -4,11 +4,11 @@ INCLUDES = \
 
 AM_CXXFLAGS =
 
-cache_LDADD = -lpthread -levent -lprotobuf
+client_LDADD = -lpthread -levent -lprotobuf
 
-bin_PROGRAMS = cache
+bin_PROGRAMS = client
 
-cache_SOURCES = \
+client_SOURCES = \
 			   ../common_src/cb.cpp \
 			   ../common_src/log.cpp \
 			   ../common_src/msg_protobuf.cpp \
